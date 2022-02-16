@@ -1,0 +1,8 @@
+*
+!.gitignore
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!LICENSE.md
+!README.md
+!.github/**/*
+!CMSModules/Kentico.Xperience.Dynamics365.Sales/**/*

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Web.UI.WebControls;
-
-using CMS.Base.Web.UI;
+﻿using CMS.Base.Web.UI;
 using CMS.Core;
 using CMS.FormEngine.Web.UI;
 using CMS.Helpers;
@@ -14,10 +8,15 @@ using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using Newtonsoft.Json.Linq;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Web.UI.WebControls;
+
 public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Mapping : FormEngineUserControl
 {
     private string mValue;
-    private bool enabled = true;
     private IEnumerable<DynamicsEntityAttributeModel> entityAttributes;
     private readonly Regex whitespaceRegex = new Regex(@"\s+");
 
@@ -39,14 +38,22 @@ public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Map
     protected override void OnPreRender(EventArgs e)
     {
         base.OnPreRender(e);
-        entityAttributes = LoadEntity();
+        if (!Service.Resolve<IDynamics365ContactSync>().SynchronizationEnabled())
+        {
+            ContainerControl.Visible = false;
+            MessageControl.InnerHtml = "Contact synchronization is disabled.";
+            MessageControl.Attributes.Add("class", "Red");
+            MessageControl.Visible = true;
+            return;
+        }
 
-        ContainerControl.Visible = enabled;
-        if (!enabled)
+        entityAttributes = LoadEntity();
+        if (entityAttributes.Count() == 0)
         {
             return;
         }
 
+        ContainerControl.Visible = true;
         foreach (var control in ContainerControl.Controls)
         {
             var ddl = control as CMSDropDownList;
@@ -76,7 +83,7 @@ public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Map
     {
         try
         {
-            var entityModel = Service.Resolve<IDynamics365Client>().GetEntityModel("contact");
+            var entityModel = Service.Resolve<IDynamics365Client>().GetEntityModel("contact").ConfigureAwait(false).GetAwaiter().GetResult();
             if (entityModel == null)
             {
                 return Enumerable.Empty<DynamicsEntityAttributeModel>();
@@ -86,7 +93,7 @@ public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Map
         }
         catch (InvalidOperationException ex)
         {
-            enabled = false;
+            ContainerControl.Visible = false;
             MessageControl.InnerHtml = ex.Message;
             MessageControl.Attributes.Add("class", "Red");
             MessageControl.Visible = true;
@@ -107,7 +114,7 @@ public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Map
                 continue;
             }
             
-            data[ddl.ID] = ddl.SelectedValue;
+            data[ddl.SelectedValue] = ddl.ID;
         }
 
         return whitespaceRegex.Replace(data.ToString(), String.Empty);
@@ -130,13 +137,13 @@ public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Map
                 continue;
             }
 
-            var mappedField = data[ddl.ID]?.Value<string>();
-            if (String.IsNullOrEmpty(mappedField))
+            var propertyWithContactField = data.Properties().Where(prop => prop.Value.Value<string>() == ddl.ID).FirstOrDefault();
+            if (propertyWithContactField == null)
             {
                 continue;
             }
 
-            ddl.SelectedValue = mappedField;
+            ddl.SelectedValue = propertyWithContactField.Name;
         }
     }
 }

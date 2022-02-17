@@ -8,7 +8,6 @@ using Kentico.Xperience.Dynamics365.Sales.Services;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 using System;
 using System.Linq;
@@ -26,17 +25,24 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     /// </summary>
     public class DefaultDynamics365Client : IDynamics365Client
     {
-        private HttpClient httpClient;
         private readonly ISettingsService settingsService;
-        private const string ENDPOINT_BASE = "/api/data/v8.2";
-        private const string ENDPOINT_ENTITY = "/EntityDefinitions(LogicalName='{0}')/Attributes?$select=LogicalName,AttributeType,DisplayName,IsPrimaryId,RequiredLevel";
+        private readonly IEventLogService eventLogService;
+        
+
+        private string DynamicsUrl
+        {
+            get
+            {
+                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_URL], String.Empty);
+            }
+        }
 
 
         private string ClientId
         {
             get
             {
-                return ValidationHelper.GetString(settingsService["Dynamics365ClientID"], String.Empty);
+                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_CLIENTID], String.Empty);
             }
         }
 
@@ -45,7 +51,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(settingsService["Dynamics365TenantID"], String.Empty);
+                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_TENANTID], String.Empty);
             }
         }
 
@@ -54,16 +60,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(settingsService["Dynamics365Secret"], String.Empty);
-            }
-        }
-
-        
-        private string DynamicsUrl
-        {
-            get
-            {
-                return ValidationHelper.GetString(settingsService["Dynamics365URL"], String.Empty);
+                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_SECRET], String.Empty);
             }
         }
 
@@ -71,21 +68,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultDynamics365Client"/> class.
         /// </summary>
-        public DefaultDynamics365Client(ISettingsService settingsService)
+        public DefaultDynamics365Client(ISettingsService settingsService, IEventLogService eventLogService)
         {
-            InitializeHttpClient();
             this.settingsService = settingsService;
+            this.eventLogService = eventLogService;
         }
 
 
-        public HttpResponseMessage CreateContact()
-        {
-            // TODO: Bind ContactInfo properties to Dynamics fields
-            throw new NotImplementedException();
-        }
-
-
-        public string GetAccessToken()
+        public async Task<string> GetAccessToken()
         {
             if (String.IsNullOrEmpty(ClientId) || String.IsNullOrEmpty(ClientSecret) || String.IsNullOrEmpty(DynamicsUrl) || String.IsNullOrEmpty(TenantId))
             {
@@ -93,53 +83,48 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             var authContext = new AuthenticationContext($"https://login.windows.net/{TenantId}", false);
-            var auth = authContext.AcquireTokenAsync(DynamicsUrl, new ClientCredential(ClientId, ClientSecret));
+            var auth = await authContext.AcquireTokenAsync(DynamicsUrl, new ClientCredential(ClientId, ClientSecret)).ConfigureAwait(false);
 
-            return auth.ConfigureAwait(false).GetAwaiter().GetResult().AccessToken;
+            return auth.AccessToken;
         }
 
 
-        public DynamicsEntityModel GetEntityModel(string name)
+        public async Task<DynamicsEntityModel> GetEntityModel(string name)
         {
-            var response = SendRequest(String.Format(ENDPOINT_ENTITY, name), HttpMethod.Get);
+            var response = await SendGetRequest(String.Format(Dynamics365Constants.ENDPOINT_ENTITY, name)).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                // TODO: Log error
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityModel), responseContent);
+
                 return null;
             }
 
-            var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var entity = JsonConvert.DeserializeObject<DynamicsEntityModel>(sourceJson);
             entity.Value = entity.Value.Where(attr =>
                 attr.AttributeType != AttributeTypes.PICKLIST
                 && attr.AttributeType != AttributeTypes.VIRTUAL
                 && attr.AttributeType != AttributeTypes.LOOKUP
                 && !attr.IsPrimaryId
-            );
+            ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
 
             return entity;
         }
 
 
         /// <summary>
-        /// Sends a request to the Dynamics 365 Web API.
+        /// Sends a GET request to the Dynamics 365 Web API.
         /// </summary>
         /// <param name="endpoint">The Web API endpoint to send the request to.</param>
-        /// <param name="method">The HTTP method to use for the request.</param>
-        /// <param name="data">Data to be POSTED to the Web API for POST requests.</param>
         /// <returns>The response from the Web API.</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        private HttpResponseMessage SendRequest(string endpoint, HttpMethod method, JObject data = null)
+        private async Task<HttpResponseMessage> SendGetRequest(string endpoint)
         {
             if (String.IsNullOrEmpty(endpoint))
             {
                 throw new ArgumentNullException(nameof(endpoint));
-            }
-
-            if (method == null)
-            {
-                throw new ArgumentNullException(nameof(method));
             }
 
             if (String.IsNullOrEmpty(DynamicsUrl))
@@ -147,42 +132,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 throw new InvalidOperationException("The Dynamics 365 URL is not configured.");
             }
 
-            if (method == HttpMethod.Post && data == null)
+            var accessToken = await GetAccessToken().ConfigureAwait(false);
+            var url = $"{DynamicsUrl}{Dynamics365Constants.ENDPOINT_BASE}{endpoint}";
+            using (var httpClient = new HttpClient())
             {
-                throw new InvalidOperationException("Data must be provided when using the POST method.");
+                httpClient.Timeout = new TimeSpan(0, 2, 0);
+                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                httpClient.DefaultRequestHeaders.Add("OData-Version", "4.0");
+                httpClient.DefaultRequestHeaders.Add("OData-MaxVersion", "4.0");
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                return await httpClient.GetAsync(url).ConfigureAwait(false);
             }
-
-            // Refresh access token (recommended by Microsoft before all API calls)
-            var accessToken = GetAccessToken();
-            if (String.IsNullOrEmpty(accessToken))
-            {
-                throw new InvalidOperationException("Unable to obtain the Dynamics 365 access token. Please check the settings.");
-            }
-
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var url = $"{DynamicsUrl}{ENDPOINT_BASE}{endpoint}";
-            Task<HttpResponseMessage> response = null;
-            if (method== HttpMethod.Get)
-            {
-                response = httpClient.GetAsync(url);
-            }
-            else if (method == HttpMethod.Post)
-            {
-                response = httpClient.PostAsJsonAsync(url, data);
-            }
-
-            return response.ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-
-
-        private void InitializeHttpClient()
-        {
-            httpClient = new HttpClient();
-            httpClient.Timeout = new TimeSpan(0, 2, 0);
-            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpClient.DefaultRequestHeaders.Add("OData-Version", "4.0");
-            httpClient.DefaultRequestHeaders.Add("OData-MaxVersion", "4.0");
         }
     }
 }

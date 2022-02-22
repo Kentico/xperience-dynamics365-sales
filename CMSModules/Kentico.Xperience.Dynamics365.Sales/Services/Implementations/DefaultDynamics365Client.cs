@@ -2,20 +2,23 @@
 using CMS.Core;
 using CMS.Helpers;
 
+using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models;
+using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
-
-using static Kentico.Xperience.Dynamics365.Sales.Models.DynamicsEntityAttributeModel;
 
 [assembly: RegisterImplementation(typeof(IDynamics365Client), typeof(DefaultDynamics365Client), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -27,7 +30,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     {
         private readonly ISettingsService settingsService;
         private readonly IEventLogService eventLogService;
-        
+        private readonly HttpMethod patchMethod = new HttpMethod("PATCH");
+
 
         private string DynamicsUrl
         {
@@ -89,38 +93,43 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<DynamicsEntityModel> GetEntityModel(string name)
+        public async Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string name)
         {
-            var response = await SendGetRequest(String.Format(Dynamics365Constants.ENDPOINT_ENTITY, name)).ConfigureAwait(false);
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, name);
+            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityModel), responseContent);
+                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
 
                 return null;
             }
 
             var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var entity = JsonConvert.DeserializeObject<DynamicsEntityModel>(sourceJson);
-            entity.Value = entity.Value.Where(attr =>
-                attr.AttributeType != AttributeTypes.PICKLIST
-                && attr.AttributeType != AttributeTypes.VIRTUAL
-                && attr.AttributeType != AttributeTypes.LOOKUP
+            var jObject = JObject.Parse(sourceJson);
+            var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
+            return attributes.Where(attr =>
+                attr.AttributeType != EntityAttributeType.PICKLIST
+                && attr.AttributeType != EntityAttributeType.VIRTUAL
+                && attr.AttributeType != EntityAttributeType.LOOKUP
                 && !attr.IsPrimaryId
             ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
-
-            return entity;
         }
 
 
-        /// <summary>
-        /// Sends a GET request to the Dynamics 365 Web API.
-        /// </summary>
-        /// <param name="endpoint">The Web API endpoint to send the request to.</param>
-        /// <returns>The response from the Web API.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="InvalidOperationException"></exception>
-        private async Task<HttpResponseMessage> SendGetRequest(string endpoint)
+        public async Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers()
+        {
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
+            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var jObject = JObject.Parse(sourceJson);
+            var userArray = jObject.Value<JArray>("value");
+
+            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+        }
+
+        
+        public async Task<HttpResponseMessage> SendRequest(string endpoint, HttpMethod method, JObject data = null)
         {
             if (String.IsNullOrEmpty(endpoint))
             {
@@ -130,6 +139,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             if (String.IsNullOrEmpty(DynamicsUrl))
             {
                 throw new InvalidOperationException("The Dynamics 365 URL is not configured.");
+            }
+
+            if ((method == HttpMethod.Post || method == patchMethod) && data == null)
+            {
+                throw new InvalidOperationException("Data must be provided for POST and PATCH methods.");
             }
 
             var accessToken = await GetAccessToken().ConfigureAwait(false);
@@ -142,7 +156,28 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 httpClient.DefaultRequestHeaders.Add("OData-MaxVersion", "4.0");
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                return await httpClient.GetAsync(url).ConfigureAwait(false);
+                if (method == HttpMethod.Get)
+                {
+                    return await httpClient.GetAsync(url).ConfigureAwait(false);
+                }
+                else if (method == HttpMethod.Post)
+                {
+                    httpClient.DefaultRequestHeaders.Add("Prefer", "return=representation");
+
+                    return await httpClient.PostAsJsonAsync(url, data).ConfigureAwait(false);
+                }
+                else if (method == patchMethod)
+                {
+                    httpClient.DefaultRequestHeaders.Add("Prefer", "return=representation");
+                    var request = new HttpRequestMessage(patchMethod, url);
+                    request.Content = new StringContent(data.ToString(), Encoding.UTF8, "application/json");
+
+                    return await httpClient.SendAsync(request).ConfigureAwait(false);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
     }

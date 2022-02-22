@@ -1,9 +1,9 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Models
+﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
-    /// A localized label for a <see cref="DynamicsEntityAttributeModel"/>.
+    /// A localized label for a <see cref="Dynamics365EntityAttributeModel"/>.
     /// </summary>
-    public class DynamicsEntityAttributeLocalizedLabel
+    public class Dynamics365EntityAttributeLocalizedLabel
     {
         /// <summary>
         /// The localized label for the Entity attribute.

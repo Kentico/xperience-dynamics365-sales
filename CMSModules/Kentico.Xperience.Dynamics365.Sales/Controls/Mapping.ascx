@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="True"  Codebehind="Mapping.ascx.cs" Inherits="CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Mapping" %>
+﻿<%@ Control Language="C#" AutoEventWireup="True"  Codebehind="Mapping.ascx.cs" Inherits="Kentico.Xperience.Dynamics365.Sales.Controls.Mapping" %>
 
 <div style="margin-top:0.5em" id="MessageControl" runat="server" enableviewstate="false" visible="false"></div>
 <div id="ContainerControl" runat="server">

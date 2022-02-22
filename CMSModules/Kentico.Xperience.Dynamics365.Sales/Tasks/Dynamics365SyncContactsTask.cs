@@ -1,6 +1,4 @@
-﻿using CMS.ContactManagement;
-using CMS.Core;
-using CMS.DataEngine;
+﻿using CMS.Core;
 using CMS.Scheduler;
 
 using Kentico.Xperience.Dynamics365.Sales.Services;
@@ -22,15 +20,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
                 return "Contact synchronization is disabled.";
             }
 
-            var minimumScore = SettingsKeyInfoProvider.GetIntValue(Dynamics365Constants.SETTINGS_MINSCORE);
-            var contactsWithScore = ContactInfo.Provider.Get()
-                .WhereIn(
-                    nameof(ContactInfo.ContactID),
-                    ScoreContactRuleInfoProvider.GetContactsWithScore(minimumScore).AsSingleColumn(nameof(ContactInfo.ContactID))
-                )
-                .TypedResult
-                .ToContactList();
-
+            var contactsWithScore = contactSyncService.GetContactsWithScore();
             var result = contactSyncService.SynchronizeContacts(contactsWithScore).ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (result.HasErrors)

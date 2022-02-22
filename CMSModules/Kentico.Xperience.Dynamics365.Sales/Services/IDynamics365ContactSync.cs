@@ -11,24 +11,10 @@ using System.Threading.Tasks;
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
     /// <summary>
-    /// Contains methods for upserting contacts from Xperience to Dynamics 365.
+    /// Contains methods for synchronizing Xperience contacts to Dynamics 365.
     /// </summary>
     public interface IDynamics365ContactSync
     {
-        /// <summary>
-        /// Returns true if contacts should be synchronized according to the settings.
-        /// </summary>
-        bool SynchronizationEnabled();
-
-
-        /// <summary>
-        /// Upserts the provided contacts to Dynamics 365.
-        /// </summary>
-        /// <param name="contacts">The contacts to be upserted.</param>
-        /// <returns>The results of the synchronization process.</returns>
-        Task<SynchronizationResult> SynchronizeContacts(List<ContactInfo> contacts);
-
-
         /// <summary>
         /// Creates a new contact in Dynamics 365 and saves the external ID to a custom
         /// Xperience contact field.
@@ -38,6 +24,32 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// from the Xperience contact.</param>
         /// <returns>The response from the Web API.</returns>
         Task<HttpResponseMessage> CreateContact(ContactInfo contact, JObject data);
+
+
+        /// <summary>
+        /// Gets all contacts who meet the scoring requirements.
+        /// </summary>
+        IEnumerable<ContactInfo> GetContactsWithScore();
+
+
+        /// <summary>
+        /// Gets all contacts who have been synchronized to Dynamics 365.
+        /// </summary>
+        IEnumerable<ContactInfo> GetSynchronizedContacts();
+
+
+        /// <summary>
+        /// Upserts the provided contacts to Dynamics 365.
+        /// </summary>
+        /// <param name="contacts">The contacts to be upserted.</param>
+        /// <returns>The results of the synchronization process.</returns>
+        Task<SynchronizationResult> SynchronizeContacts(IEnumerable<ContactInfo> contacts);
+
+
+        /// <summary>
+        /// Returns true if contacts should be synchronized according to the settings.
+        /// </summary>
+        bool SynchronizationEnabled();
 
 
         /// <summary>

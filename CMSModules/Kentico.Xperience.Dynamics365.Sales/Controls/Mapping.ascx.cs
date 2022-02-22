@@ -3,7 +3,7 @@ using CMS.Core;
 using CMS.FormEngine.Web.UI;
 using CMS.Helpers;
 
-using Kentico.Xperience.Dynamics365.Sales.Models;
+using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using Newtonsoft.Json.Linq;
@@ -14,136 +14,143 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web.UI.WebControls;
 
-public partial class CMSModules_Kentico_Xperience_Dynamics365_Sales_Controls_Mapping : FormEngineUserControl
+namespace Kentico.Xperience.Dynamics365.Sales.Controls
 {
-    private string mValue;
-    private IEnumerable<DynamicsEntityAttributeModel> entityAttributes;
-    private readonly Regex whitespaceRegex = new Regex(@"\s+");
-
-
-    public override object Value
+    /// <summary>
+    /// A form control which stores Dynamics 365 contact fields and their corresponding
+    /// Xperience fields in a JSON object.
+    /// </summary>
+    public partial class Mapping : FormEngineUserControl
     {
-        get
-        {
-            mValue = GetValue();
-            return mValue;
-        }
-        set
-        {
-            mValue = ValidationHelper.GetString(value, String.Empty);
-        }
-    }
+        private string mValue;
+        private IEnumerable<Dynamics365EntityAttributeModel> entityAttributes;
+        private readonly Regex whitespaceRegex = new Regex(@"\s+");
 
 
-    protected override void OnPreRender(EventArgs e)
-    {
-        base.OnPreRender(e);
-        if (!Service.Resolve<IDynamics365ContactSync>().SynchronizationEnabled())
+        public override object Value
         {
-            ContainerControl.Visible = false;
-            MessageControl.InnerHtml = "Contact synchronization is disabled.";
-            MessageControl.Attributes.Add("class", "Red");
-            MessageControl.Visible = true;
-            return;
-        }
-
-        entityAttributes = LoadEntity();
-        if (entityAttributes.Count() == 0)
-        {
-            return;
-        }
-
-        ContainerControl.Visible = true;
-        foreach (var control in ContainerControl.Controls)
-        {
-            var ddl = control as CMSDropDownList;
-            if (ddl == null)
+            get
             {
-                continue;
+                mValue = GetValue();
+                return mValue;
+            }
+            set
+            {
+                mValue = ValidationHelper.GetString(value, String.Empty);
+            }
+        }
+
+
+        protected override void OnPreRender(EventArgs e)
+        {
+            base.OnPreRender(e);
+            if (!Service.Resolve<IDynamics365ContactSync>().SynchronizationEnabled())
+            {
+                ContainerControl.Visible = false;
+                MessageControl.InnerHtml = "Contact synchronization is disabled.";
+                MessageControl.Attributes.Add("class", "Red");
+                MessageControl.Visible = true;
+                return;
             }
 
-            ddl.Items.Add(new ListItem("(not mapped)", String.Empty));
-            foreach (var attr in entityAttributes)
+            entityAttributes = LoadEntity();
+            if (entityAttributes.Count() == 0)
             {
-                var displayName = attr.LogicalName;
-                if (attr.DisplayName.UserLocalizedLabel != null && !String.IsNullOrEmpty(attr.DisplayName.UserLocalizedLabel.Label))
+                return;
+            }
+
+            ContainerControl.Visible = true;
+            foreach (var control in ContainerControl.Controls)
+            {
+                var ddl = control as CMSDropDownList;
+                if (ddl == null)
                 {
-                    displayName = $"{attr.DisplayName.UserLocalizedLabel.Label} ({attr.LogicalName})";
+                    continue;
                 }
 
-                ddl.Items.Add(new ListItem(displayName, attr.LogicalName));
+                ddl.Items.Add(new ListItem("(not mapped)", String.Empty));
+                foreach (var attr in entityAttributes)
+                {
+                    var displayName = attr.LogicalName;
+                    if (attr.DisplayName.UserLocalizedLabel != null && !String.IsNullOrEmpty(attr.DisplayName.UserLocalizedLabel.Label))
+                    {
+                        displayName = $"{attr.DisplayName.UserLocalizedLabel.Label} ({attr.LogicalName})";
+                    }
+
+                    ddl.Items.Add(new ListItem(displayName, attr.LogicalName));
+                }
             }
+
+            SetStoredValues();
         }
 
-        SetStoredValues();
-    }
 
-
-    private IEnumerable<DynamicsEntityAttributeModel> LoadEntity()
-    {
-        try
+        private IEnumerable<Dynamics365EntityAttributeModel> LoadEntity()
         {
-            var entityModel = Service.Resolve<IDynamics365Client>().GetEntityModel("contact").ConfigureAwait(false).GetAwaiter().GetResult();
-            if (entityModel == null)
+            try
             {
-                return Enumerable.Empty<DynamicsEntityAttributeModel>();
+                var entityAttributes = Service.Resolve<IDynamics365Client>().GetEntityAttributes("contact").ConfigureAwait(false).GetAwaiter().GetResult();
+                if (entityAttributes == null)
+                {
+                    return Enumerable.Empty<Dynamics365EntityAttributeModel>();
+                }
+
+                return entityAttributes;
             }
-
-            return entityModel.Value;
-        }
-        catch (InvalidOperationException ex)
-        {
-            ContainerControl.Visible = false;
-            MessageControl.InnerHtml = ex.Message;
-            MessageControl.Attributes.Add("class", "Red");
-            MessageControl.Visible = true;
-        }
-
-        return Enumerable.Empty<DynamicsEntityAttributeModel>();
-    }
-
-
-    private string GetValue()
-    {
-        var data = new JObject();
-        foreach (var control in ContainerControl.Controls)
-        {
-            var ddl = control as CMSDropDownList;
-            if (ddl == null || String.IsNullOrEmpty(ddl.SelectedValue))
+            catch (InvalidOperationException ex)
             {
-                continue;
+                ContainerControl.Visible = false;
+                MessageControl.InnerHtml = ex.Message;
+                MessageControl.Attributes.Add("class", "Red");
+                MessageControl.Visible = true;
             }
-            
-            data[ddl.SelectedValue] = ddl.ID;
+
+            return Enumerable.Empty<Dynamics365EntityAttributeModel>();
         }
 
-        return whitespaceRegex.Replace(data.ToString(), String.Empty);
-    }
 
-
-    private void SetStoredValues()
-    {
-        if (String.IsNullOrEmpty(mValue))
+        private string GetValue()
         {
-            return;
+            var data = new JObject();
+            foreach (var control in ContainerControl.Controls)
+            {
+                var ddl = control as CMSDropDownList;
+                if (ddl == null || String.IsNullOrEmpty(ddl.SelectedValue))
+                {
+                    continue;
+                }
+
+                data[ddl.SelectedValue] = ddl.ID;
+            }
+
+            return whitespaceRegex.Replace(data.ToString(), String.Empty);
         }
 
-        var data = JObject.Parse(mValue);
-        foreach (var control in ContainerControl.Controls)
+
+        private void SetStoredValues()
         {
-            var ddl = control as CMSDropDownList;
-            if (ddl == null)
+            if (String.IsNullOrEmpty(mValue))
             {
-                continue;
+                return;
             }
 
-            var propertyWithContactField = data.Properties().Where(prop => prop.Value.Value<string>() == ddl.ID).FirstOrDefault();
-            if (propertyWithContactField == null)
+            var data = JObject.Parse(mValue);
+            foreach (var control in ContainerControl.Controls)
             {
-                continue;
-            }
+                var ddl = control as CMSDropDownList;
+                if (ddl == null)
+                {
+                    continue;
+                }
 
-            ddl.SelectedValue = propertyWithContactField.Name;
+                var propertyWithContactField = data.Properties().Where(prop => prop.Value.Value<string>() == ddl.ID).FirstOrDefault();
+                if (propertyWithContactField == null)
+                {
+                    continue;
+                }
+
+                ddl.SelectedValue = propertyWithContactField.Name;
+            }
         }
     }
 }

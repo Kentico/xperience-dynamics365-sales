@@ -1,5 +1,11 @@
 ﻿using Kentico.Xperience.Dynamics365.Sales.Models;
+using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 
+using Newtonsoft.Json.Linq;
+
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -18,10 +24,29 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
 
         /// <summary>
-        /// Gets the structure of the specified Dynamics 365 Entity and its <see cref="DynamicsEntityAttributeModel"/>s.
+        /// Gets the specified Entity's <see cref="Dynamics365EntityAttributeModel"/>s.
         /// </summary>
         /// <param name="name">The <b>LogicalName</b> of the Dynamics 365 Entity to retreive.</param>
-        /// <returns>The Entity definition, or null if there was an error retrieving it.</returns>
-        Task<DynamicsEntityModel> GetEntityModel(string name);
+        /// <returns>The Entity's attributes, or an empty list if there was an error retrieving it.</returns>
+        Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string name);
+
+
+        /// <summary>
+        /// Gets the Dynamics 365 systemuser objects.
+        /// </summary>
+        Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers();
+
+
+        /// <summary>
+        /// Sends a request to the Dynamics 365 Web API.
+        /// </summary>
+        /// <param name="endpoint">The Web API endpoint to send the request to.</param>
+        /// <param name="method">The method to use in the request.</param>
+        /// <param name="data">The data to send in the request.</param>
+        /// <returns>The response from the Web API.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="NotImplementedException"></exception>
+        Task<HttpResponseMessage> SendRequest(string endpoint, HttpMethod method, JObject data = null);
     }
 }

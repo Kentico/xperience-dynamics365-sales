@@ -61,16 +61,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
 
         private IEnumerable<ActivityInfo> GetActivities(ContactInfo contact, DateTime lastRun)
         {
-            var dateSynced = contact.GetDateTimeValue(Dynamics365Constants.CUSTOMFIELDS_SYNCEDON, DateTime.MaxValue);
+            var activityMinTime = lastRun;
+            var dateSynced = contact.GetDateTimeValue(Dynamics365Constants.CUSTOMFIELDS_SYNCEDON, DateTime.MinValue);
             if (dateSynced > lastRun)
             {
                 // Contact was synced between runs and their past activities already exist in Dynamics.
-                // Only get the new activities between contact sync and this run time to prevent duplicates.
+                // Only get the activities between contact sync time and this run time to prevent duplicates.
+                activityMinTime = dateSynced;
             }
 
             return ActivityInfo.Provider.Get()
                     .WhereEquals(nameof(ActivityInfo.ActivityContactID), contact.ContactID)
-                    //.WhereGreaterOrEquals(nameof(ActivityInfo.ActivityCreated), task.TaskLastRunTime)
+                    .WhereGreaterOrEquals(nameof(ActivityInfo.ActivityCreated), activityMinTime)
                     .TypedResult
                     .ToList();
         }

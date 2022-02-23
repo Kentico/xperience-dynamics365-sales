@@ -1,4 +1,5 @@
 ﻿using CMS;
+using CMS.Activities;
 using CMS.ContactManagement;
 using CMS.Core;
 using CMS.Helpers;
@@ -24,18 +25,27 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     public class DefaultDynamics365ContactSync : IDynamics365ContactSync
     {
         private readonly IDynamics365Client dynamics365Client;
+        private readonly IDynamics365ActivitySync dynamics365ActivitySync;
         private readonly IDynamics365EntityMapper dynamics365EntityMapper;
         private readonly ISettingsService settingsService;
+        private readonly IEventLogService eventLogService;
 
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultDynamics365ContactSync"/> class.
         /// </summary>
-        public DefaultDynamics365ContactSync(IDynamics365Client dynamics365Client, IDynamics365EntityMapper dynamics365EntityMapper, ISettingsService settingsService)
+        public DefaultDynamics365ContactSync(
+            IDynamics365Client dynamics365Client,
+            IDynamics365ActivitySync dynamics365ActivitySync,
+            IDynamics365EntityMapper dynamics365EntityMapper,
+            ISettingsService settingsService,
+            IEventLogService eventLogService)
         {
             this.dynamics365Client = dynamics365Client;
+            this.dynamics365ActivitySync = dynamics365ActivitySync;
             this.dynamics365EntityMapper = dynamics365EntityMapper;
             this.settingsService = settingsService;
+            this.eventLogService = eventLogService;
         }
 
 
@@ -57,8 +67,17 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 var dynamicsId = createdContact.Value<string>("contactid");
                 if (!String.IsNullOrEmpty(dynamicsId))
                 {
+                    contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_SYNCEDON, DateTime.Now);
                     contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, dynamicsId);
                     contact.Update();
+
+                    await SynchronizeActivities(contact, dynamicsId);
+                }
+                else
+                {
+                    var message = $"While synchronizing the contact '{contact.ContactDescriptiveName}', the request was successful, but the Dynamics 365 ID could not be retrieved."
+                        + " Please delete the contact in Dynamics 365 and contact the developer.";
+                    eventLogService.LogError(nameof(DefaultDynamics365ContactSync), nameof(CreateContact), message);
                 }
             }
 
@@ -155,6 +174,23 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH, "contact", dynamicsId);
 
             return await dynamics365Client.SendRequest(endpoint, new HttpMethod("PATCH"), data).ConfigureAwait(false);
+        }
+
+
+        private async Task SynchronizeActivities(ContactInfo contact, string dynamicsId)
+        {
+            var activities = ActivityInfo.Provider.Get()
+                    .WhereEquals(nameof(ActivityInfo.ActivityContactID), contact.ContactID)
+                    .TypedResult
+                    .ToList();
+
+            var result = await dynamics365ActivitySync.SynchronizeActivities(dynamicsId, activities).ConfigureAwait(false);
+            if (result.HasErrors)
+            {
+                var message = $"The following errors occurred during synchronization of contact '{contact.ContactDescriptiveName}' activities:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"
+                        + $"<br/><br/>As a result, the following activities were not synchronized:<br/><br/>{String.Join("<br/>", result.UnsynchronizedObjectIdentifiers)}";
+                eventLogService.LogError(nameof(DefaultDynamics365ContactSync), nameof(SynchronizeActivities), message);
+            }
         }
     }
 }

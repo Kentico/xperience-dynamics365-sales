@@ -1,4 +1,5 @@
 ﻿using CMS.Activities;
+using CMS.ContactManagement;
 using CMS.Core;
 using CMS.Scheduler;
 
@@ -6,6 +7,7 @@ using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Tasks
@@ -35,12 +37,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
             foreach(var contact in synchronizedContacts)
             {
                 var dynamicsId = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
-                var activitiesSinceLastRun = ActivityInfo.Provider.Get()
-                    .WhereEquals(nameof(ActivityInfo.ActivityContactID), contact.ContactID)
-                    //.WhereGreaterOrEquals(nameof(ActivityInfo.ActivityCreated), task.TaskLastRunTime)
-                    .TypedResult
-                    .ToList();
-
+                var activitiesSinceLastRun = GetActivities(contact, task.TaskLastRunTime);
                 var result = Service.Resolve<IDynamics365ActivitySync>().SynchronizeActivities(dynamicsId, activitiesSinceLastRun).ConfigureAwait(false).GetAwaiter().GetResult();
 
                 totalSynchronized += result.SynchronizedObjectCount;
@@ -59,6 +56,23 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
             }
 
             return $"{totalSynchronized} activities synchronized.";
+        }
+
+
+        private IEnumerable<ActivityInfo> GetActivities(ContactInfo contact, DateTime lastRun)
+        {
+            var dateSynced = contact.GetDateTimeValue(Dynamics365Constants.CUSTOMFIELDS_SYNCEDON, DateTime.MaxValue);
+            if (dateSynced > lastRun)
+            {
+                // Contact was synced between runs and their past activities already exist in Dynamics.
+                // Only get the new activities between contact sync and this run time to prevent duplicates.
+            }
+
+            return ActivityInfo.Provider.Get()
+                    .WhereEquals(nameof(ActivityInfo.ActivityContactID), contact.ContactID)
+                    //.WhereGreaterOrEquals(nameof(ActivityInfo.ActivityCreated), task.TaskLastRunTime)
+                    .TypedResult
+                    .ToList();
         }
     }
 }

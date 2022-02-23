@@ -16,8 +16,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     public interface IDynamics365ContactSync
     {
         /// <summary>
-        /// Creates a new contact in Dynamics 365 and saves the external ID to a custom
-        /// Xperience contact field.
+        /// Creates a new contact in Dynamics 365 and saves the external ID and synchronized
+        /// time to custom Xperience contact fields. Also synchronizes all past activities of
+        /// the contact at the time of creation.
         /// </summary>
         /// <param name="contact">The contact to create in Dynamics 365.</param>
         /// <param name="data">An object containing the Dynamics 365 fields and the values

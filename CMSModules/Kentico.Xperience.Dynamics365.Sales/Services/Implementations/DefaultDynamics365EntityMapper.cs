@@ -44,7 +44,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
             if (activity.ActivityType == Dynamics365Constants.ACTIVITY_PHONECALL)
             {
-                MapPhoneCallProperties(entity, activity);
+                MapPhoneCallProperties(dynamicsId, entity, activity);
             }
 
             return entity;
@@ -77,7 +77,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        private void MapPhoneCallProperties(JObject entity, ActivityInfo activity)
+        private void MapPhoneCallProperties(string dynamicsId, JObject entity, ActivityInfo activity)
         {
             var phoneCallModel = JsonConvert.DeserializeObject<Dynamics365PhoneCallModel>(activity.ActivityValue);
             entity.Add("subject", phoneCallModel.Subject);
@@ -85,8 +85,19 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             entity.Add("description", phoneCallModel.Description);
 
             var parties = new JArray();
+            if (String.IsNullOrEmpty(phoneCallModel.To))
+            {
+                phoneCallModel.To = dynamicsId;
+            }
+
             parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty("partyid_contact@odata.bind", $"/contacts({phoneCallModel.To})")));
-            parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty("partyid_contact@odata.bind", $"/systemusers({phoneCallModel.From})")));
+
+            if (!String.IsNullOrEmpty(phoneCallModel.From))
+            {
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty("partyid_contact@odata.bind", $"/systemusers({phoneCallModel.From})")));
+
+            }
+
             entity.Add("phonecall_activity_parties", parties);
         }
     }

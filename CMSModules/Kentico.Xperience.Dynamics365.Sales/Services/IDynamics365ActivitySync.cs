@@ -33,9 +33,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
 
         /// <summary>
-        /// Creates records in Dynamics that are linked to the specified contact.
+        /// Creates activity Entities in Dynamics 365 from the list of Xperience activities that are
+        /// linked to the specified contact.
         /// </summary>
-        /// <param name="dynamicsId">The internal Dynamics id that the activities will be linked to.</param>
+        /// <param name="dynamicsId">The internal Dynamics ID that the activities will be linked to.</param>
         /// <param name="activities">The activities to create.</param>
         /// <returns></returns>
         Task<SynchronizationResult> SynchronizeActivities(string dynamicsId, IEnumerable<ActivityInfo> activities);

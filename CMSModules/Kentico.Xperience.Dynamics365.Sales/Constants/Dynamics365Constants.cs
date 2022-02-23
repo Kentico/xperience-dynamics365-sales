@@ -100,5 +100,12 @@
         /// Dynamics 365 contact that is related to the Xperience contact.
         /// </summary>
         public const string CUSTOMFIELDS_LINKEDID = "ContactDynamics365RelatedID";
+
+
+        /// <summary>
+        /// The name of the contact custom field which contains the time that the contact was
+        /// first synchronized to Dynamics 365.
+        /// </summary>
+        public const string CUSTOMFIELDS_SYNCEDON = "ContactDynamics365SynchronizedOn";
     }
 }

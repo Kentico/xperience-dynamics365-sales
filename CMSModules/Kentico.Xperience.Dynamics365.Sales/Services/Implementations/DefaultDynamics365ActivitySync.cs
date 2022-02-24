@@ -82,7 +82,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     continue;
                 }
 
-                var entity = dynamics365EntityMapper.MapEntity(entityToCreate, dynamicsId, activity);
+                var entity = dynamics365EntityMapper.MapActivity(entityToCreate, dynamicsId, activity);
                 var response = await CreateActivity(entity, entityToCreate).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {

@@ -33,11 +33,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public JObject MapEntity(string entityName, string dynamicsId, ActivityInfo activity)
+        public JObject MapActivity(string entityName, string dynamicsId, ActivityInfo activity = null)
         {
             var entity = new JObject();
 
-            entity.Add("actualstart", activity.ActivityCreated);
+            if (activity != null)
+            {
+                entity.Add("actualstart", activity.ActivityCreated);
+            }
+            
             entity.Add("isregularactivity", true);
             entity.Add("regardingobjectid_contact@odata.bind", $"/contacts({dynamicsId})");
 

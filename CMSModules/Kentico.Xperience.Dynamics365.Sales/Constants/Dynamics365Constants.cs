@@ -12,6 +12,12 @@
 
 
         /// <summary>
+        /// The code name for the task activity type.
+        /// </summary>
+        public const string ACTIVITY_TASK = "task";
+
+
+        /// <summary>
         /// The code name for the phone call activity type.
         /// </summary>
         public const string ACTIVITY_PHONECALL = "phonecall";

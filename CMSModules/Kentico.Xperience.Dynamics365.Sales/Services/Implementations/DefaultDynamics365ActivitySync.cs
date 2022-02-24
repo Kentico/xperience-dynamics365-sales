@@ -27,7 +27,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly ISettingsService settingsService;
 
 
-        public DefaultDynamics365ActivitySync(IDynamics365Client dynamics365Client, IDynamics365EntityMapper dynamics365EntityMapper, ISettingsService settingsService)
+        public DefaultDynamics365ActivitySync(
+            IDynamics365Client dynamics365Client,
+            IDynamics365EntityMapper dynamics365EntityMapper,
+            ISettingsService settingsService)
         {
             this.dynamics365Client = dynamics365Client;
             this.dynamics365EntityMapper = dynamics365EntityMapper;
@@ -35,9 +38,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<HttpResponseMessage> CreateActivity(JObject data, string activityType)
+        public async Task<HttpResponseMessage> CreateActivity(JObject data, string entityName)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, activityType);
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, entityName);
 
             return await dynamics365Client.SendRequest(endpoint, HttpMethod.Post, data).ConfigureAwait(false);
         }
@@ -45,16 +48,20 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public async Task<IEnumerable<Dynamics365EntityModel>> GetAllActivities()
         {
-            var response = await dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            return await CacheHelper.CacheAsync(async cacheSettings =>
             {
-                return Enumerable.Empty<Dynamics365EntityModel>();
-            }
+                var response = await dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Enumerable.Empty<Dynamics365EntityModel>();
+                }
 
-            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var jObject = JObject.Parse(sourceJson);
+                var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var jObject = JObject.Parse(sourceJson);
 
-            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
+                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
+            },
+            new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_DURATION).TotalMinutes, $"{nameof(DefaultDynamics365ActivitySync)}|{nameof(GetAllActivities)}")).ConfigureAwait(false);
         }
 
 
@@ -63,18 +70,20 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             var synchronizedActivities = 0;
             var unsyncedActivities = new List<string>();
             var synchronizationErrors = new List<string>();
-
-            // Filter list to include only activities that exist in Dynamics 365
             var dynamicsActivityEntities = await GetAllActivities().ConfigureAwait(false);
             var dynamicsActivityNames = dynamicsActivityEntities.Select(entity => entity.LogicalName);
-            var activitiesWithMatchingType = activities.Where(activity => dynamicsActivityNames.Contains(activity.ActivityType));
-            foreach (var activity in activitiesWithMatchingType)
-            {
-                var entityName = activity.ActivityType;
-                var entity = dynamics365EntityMapper.MapEntity(entityName, dynamicsId, activity);
-                var response = await CreateActivity(entity, entityName).ConfigureAwait(false);
 
-                // Handle response
+            foreach (var activity in activities)
+            {
+                var entityToCreate = dynamics365EntityMapper.MapActivityType(activity.ActivityType);
+                if (!dynamicsActivityNames.Contains(entityToCreate))
+                {
+                    // Entity doesn't exist in Dynamics 365
+                    continue;
+                }
+
+                var entity = dynamics365EntityMapper.MapEntity(entityToCreate, dynamicsId, activity);
+                var response = await CreateActivity(entity, entityToCreate).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     synchronizedActivities++;

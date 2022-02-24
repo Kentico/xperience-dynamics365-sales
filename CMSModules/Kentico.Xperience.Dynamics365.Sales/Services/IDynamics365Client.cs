@@ -26,9 +26,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <summary>
         /// Gets the specified Entity's <see cref="Dynamics365EntityAttributeModel"/>s.
         /// </summary>
-        /// <param name="name">The <b>LogicalName</b> of the Dynamics 365 Entity to retreive.</param>
+        /// <param name="entityName">The <b>LogicalName</b> of the Dynamics 365 Entity to retreive.</param>
         /// <returns>The Entity's attributes, or an empty list if there was an error retrieving it.</returns>
-        Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string name);
+        Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string entityName);
 
 
         /// <summary>

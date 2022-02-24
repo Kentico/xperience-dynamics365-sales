@@ -30,17 +30,22 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
                 throw new InvalidOperationException("The required properties are not set for the automation step.");
             }
 
-            
             var contact = ContactInfo.Provider.Get(StateObject.StateObjectID);
             var callTo = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
             var phoneNumber = String.IsNullOrEmpty(contact.ContactBusinessPhone) ? contact.ContactMobilePhone : contact.ContactBusinessPhone;
+            var previousStepHistory = AutomationHistoryInfo.Provider.Get()
+                .WhereEquals(nameof(AutomationHistoryInfo.HistoryStateID), StateObject.StateID)
+                .WhereEquals(nameof(AutomationHistoryInfo.HistoryTargetStepID), ActionStep.StepID)
+                .TypedResult
+                .FirstOrDefault();
+
             var activityData = new Dynamics365PhoneCallModel
             {
                 To = callTo,
-                From = GetApprover(),
+                From = GetApprover(previousStepHistory),
                 Subject = subject,
                 PhoneNumber = phoneNumber,
-                Description = GetComment()
+                Description = GetComment(previousStepHistory)
             };
 
             var activity = new ActivityInfo
@@ -56,16 +61,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
         }
 
 
-        private string GetComment()
+        private string GetComment(AutomationHistoryInfo previousStep)
         {
             string comment = String.Empty;
-            var previousStepHistoryId = AutomationManager.GetPreviousStepInfo(InfoObject, StateObject).RelatedHistoryID;
-            var history = AutomationHistoryInfo.Provider.Get(previousStepHistoryId);
-            if (history != null)
+            if (previousStep != null)
             {
-                if (!String.IsNullOrEmpty(history.HistoryComment))
+                if (!String.IsNullOrEmpty(previousStep.HistoryComment))
                 {
-                    comment = history.HistoryComment;
+                    comment = previousStep.HistoryComment;
                 }
             }
 
@@ -73,15 +76,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
         }
 
 
-        private string GetApprover()
+        private string GetApprover(AutomationHistoryInfo previousStep)
         {
             // Try to get phone call 'From' user from previous step
             string userEmail = String.Empty;
-            var previousStepHistoryId = AutomationManager.GetPreviousStepInfo(InfoObject, StateObject).RelatedHistoryID;
-            var history = AutomationHistoryInfo.Provider.Get(previousStepHistoryId);
-            if (history != null)
+            if (previousStep != null)
             {
-                var user = UserInfo.Provider.Get(history.HistoryApprovedByUserID);
+                var user = UserInfo.Provider.Get(previousStep.HistoryApprovedByUserID);
                 if (user != null)
                 {
                     userEmail = user.Email;

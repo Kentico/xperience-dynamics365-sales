@@ -6,9 +6,21 @@
     public static class Dynamics365Constants
     {
         /// <summary>
+        /// The number of minutes data retrieved from Dynamics 365 is cached.
+        /// </summary>
+        public const int CACHE_DURATION = 30;
+
+
+        /// <summary>
         /// The code name for the phone call activity type.
         /// </summary>
         public const string ACTIVITY_PHONECALL = "phonecall";
+
+
+        /// <summary>
+        /// The code name for the email activity type.
+        /// </summary>
+        public const string ACTIVITY_EMAIL = "email";
 
 
         /// <summary>

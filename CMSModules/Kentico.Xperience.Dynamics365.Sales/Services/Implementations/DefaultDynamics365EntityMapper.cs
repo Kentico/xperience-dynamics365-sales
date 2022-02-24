@@ -27,6 +27,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
+        public string MapActivityType(string activityType)
+        {
+            return activityType;
+        }
+
+
         public JObject MapEntity(string entityName, string dynamicsId, ActivityInfo activity)
         {
             var entity = new JObject();
@@ -42,9 +48,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 entity.Add("ownerid@odata.bind", defaultOwner);
             }
 
-            if (activity.ActivityType == Dynamics365Constants.ACTIVITY_PHONECALL)
+            switch (entityName)
             {
-                MapPhoneCallProperties(dynamicsId, entity, activity);
+                case Dynamics365Constants.ACTIVITY_PHONECALL:
+                    MapPhoneCallProperties(dynamicsId, entity, activity);
+                    break;
+                case Dynamics365Constants.ACTIVITY_EMAIL:
+                    MapEmailProperties(dynamicsId, entity, activity);
+                    break;
             }
 
             return entity;
@@ -99,6 +110,38 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             entity.Add("phonecall_activity_parties", parties);
+        }
+
+
+        private void MapEmailProperties(string dynamicsId, JObject entity, ActivityInfo activity)
+        {
+            var emailModel = JsonConvert.DeserializeObject<Dynamics365EmailModel>(activity.ActivityValue);
+            entity.Add("subject", emailModel.Subject);
+            entity.Add("description", emailModel.Body);
+
+            var parties = new JArray();
+            if (!String.IsNullOrEmpty(emailModel.To))
+            {
+                if (emailModel.SentToUser)
+                {
+                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty("partyid_systemuser@odata.bind", $"/systemusers({emailModel.To})")));
+                }
+                else
+                {
+                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty("partyid_contact@odata.bind", $"/contacts({emailModel.To})")));
+                }
+            }
+
+            if (!String.IsNullOrEmpty(emailModel.From))
+            {
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty("partyid_systemuser@odata.bind", $"/systemusers({emailModel.From})")));
+
+            }
+
+            if (parties.Count > 0)
+            {
+                entity.Add("email_activity_parties", parties);
+            }
         }
     }
 }

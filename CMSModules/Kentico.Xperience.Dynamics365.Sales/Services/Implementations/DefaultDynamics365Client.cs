@@ -93,39 +93,47 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string name)
+        public async Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string entityName)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, name);
-            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            return await CacheHelper.CacheAsync(async cacheSettings =>
             {
-                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
+                var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
 
-                return null;
-            }
+                    return null;
+                }
 
-            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var jObject = JObject.Parse(sourceJson);
-            var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
-            return attributes.Where(attr =>
-                attr.AttributeType != EntityAttributeType.PICKLIST
-                && attr.AttributeType != EntityAttributeType.VIRTUAL
-                && attr.AttributeType != EntityAttributeType.LOOKUP
-                && !attr.IsPrimaryId
-            ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+                var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var jObject = JObject.Parse(sourceJson);
+                var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
+                return attributes.Where(attr =>
+                    attr.AttributeType != EntityAttributeType.PICKLIST
+                    && attr.AttributeType != EntityAttributeType.VIRTUAL
+                    && attr.AttributeType != EntityAttributeType.LOOKUP
+                    && !attr.IsPrimaryId
+                ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+            },
+            new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_DURATION).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetEntityAttributes)}|{entityName}")).ConfigureAwait(false);
         }
 
 
         public async Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers()
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
-            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var jObject = JObject.Parse(sourceJson);
-            var userArray = jObject.Value<JArray>("value");
+            return await CacheHelper.CacheAsync(async cacheSettings =>
+            {
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
+                var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+                var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var jObject = JObject.Parse(sourceJson);
+                var userArray = jObject.Value<JArray>("value");
 
-            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+            },
+            new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_DURATION).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetSystemUsers)}")).ConfigureAwait(false);
         }
 
         

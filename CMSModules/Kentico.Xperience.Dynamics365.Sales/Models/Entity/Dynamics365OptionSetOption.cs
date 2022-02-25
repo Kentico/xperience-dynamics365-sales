@@ -1,14 +1,14 @@
 ﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
-    /// Describes the structure of a Dynamics 365 Entity.
+    /// An option for an Entity option set.
     /// </summary>
-    public class Dynamics365EntityModel
+    public class Dynamics365OptionSetOption
     {
         /// <summary>
-        /// The internal Entity name.
+        /// The value (identifier) of the option.
         /// </summary>
-        public string LogicalName
+        public int Value
         {
             get;
             set;
@@ -16,9 +16,9 @@
 
 
         /// <summary>
-        /// The option set for the Entity.
+        /// The human-friendly label for the option.
         /// </summary>
-        public Dynamics365OptionSet OptionSet
+        public Dynamics365Label Label
         {
             get;
             set;

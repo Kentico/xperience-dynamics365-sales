@@ -11,7 +11,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
 {
 
 
-    public partial class OwnerSelector
+    public partial class UserTeamSelector
     {
 
         /// <summary>

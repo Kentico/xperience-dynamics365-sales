@@ -25,16 +25,19 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly IDynamics365Client dynamics365Client;
         private readonly IDynamics365EntityMapper dynamics365EntityMapper;
         private readonly ISettingsService settingsService;
+        private readonly IProgressiveCache progressiveCache;
 
 
         public DefaultDynamics365ActivitySync(
             IDynamics365Client dynamics365Client,
             IDynamics365EntityMapper dynamics365EntityMapper,
-            ISettingsService settingsService)
+            ISettingsService settingsService,
+            IProgressiveCache progressiveCache)
         {
             this.dynamics365Client = dynamics365Client;
             this.dynamics365EntityMapper = dynamics365EntityMapper;
             this.settingsService = settingsService;
+            this.progressiveCache = progressiveCache;
         }
 
 
@@ -48,20 +51,16 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public async Task<IEnumerable<Dynamics365EntityModel>> GetAllActivities()
         {
-            return await CacheHelper.CacheAsync(async cacheSettings =>
+            var response = await dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
             {
-                var response = await dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    return Enumerable.Empty<Dynamics365EntityModel>();
-                }
+                return Enumerable.Empty<Dynamics365EntityModel>();
+            }
 
-                var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var jObject = JObject.Parse(sourceJson);
+            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var jObject = JObject.Parse(sourceJson);
 
-                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
-            },
-            new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_DURATION).TotalMinutes, $"{nameof(DefaultDynamics365ActivitySync)}|{nameof(GetAllActivities)}")).ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
         }
 
 

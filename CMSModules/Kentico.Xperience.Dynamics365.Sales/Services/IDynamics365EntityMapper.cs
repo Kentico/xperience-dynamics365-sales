@@ -25,10 +25,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// </summary>
         /// <param name="entityName">The name of the Entity that is being created based on the current task/event.</param>
         /// <param name="dynamicsId">The internal Dynamics 365 contact ID associated with the activity.</param>
-        /// <param name="activity">The Xperience activity which triggered the Entity creation, or null if the Entity
-        /// is not being created from an existing activity.</param>
+        /// <param name="relatedData">An object containing the required data for the activity, such as <see cref="ActivityInfo"/>.</param>
         /// <returns>An object with Dynamics 365 fields and their values.</returns>
-        JObject MapActivity(string entityName, string dynamicsId, ActivityInfo activity = null);
+        JObject MapActivity(string entityName, string dynamicsId, object relatedData);
 
 
         /// <summary>

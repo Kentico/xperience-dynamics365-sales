@@ -15,10 +15,19 @@ using System.Web.UI.WebControls;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Controls
 {
-    public partial class OwnerSelector : FormEngineUserControl
+    public partial class UserTeamSelector : FormEngineUserControl
     {
         private string mValue;
         private IDynamics365Client dynamics365Client;
+
+
+        private bool AllowTeams
+        {
+            get
+            {
+                return GetValue("AllowTeams", true);
+            }
+        }
 
 
         public override object Value
@@ -39,11 +48,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
             dynamics365Client = Service.Resolve<IDynamics365Client>();
 
             var userListItems = GetSystemUsers();
-            var teamListItems = GetTeams();
-
             drpOwner.Items.Add(new ListItem("(not set)", String.Empty));
             drpOwner.Items.AddRange(userListItems.ToArray());
-            drpOwner.Items.AddRange(teamListItems.ToArray());
+
+            if (AllowTeams)
+            {
+                var teamListItems = GetTeams();
+                drpOwner.Items.AddRange(teamListItems.ToArray());
+            }
 
             if (!String.IsNullOrEmpty(mValue))
             {

@@ -30,6 +30,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     {
         private readonly ISettingsService settingsService;
         private readonly IEventLogService eventLogService;
+        private readonly IProgressiveCache progressiveCache;
         private readonly HttpMethod patchMethod = new HttpMethod("PATCH");
 
 
@@ -72,10 +73,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultDynamics365Client"/> class.
         /// </summary>
-        public DefaultDynamics365Client(ISettingsService settingsService, IEventLogService eventLogService)
+        public DefaultDynamics365Client(
+            ISettingsService settingsService,
+            IEventLogService eventLogService,
+            IProgressiveCache progressiveCache)
         {
             this.settingsService = settingsService;
             this.eventLogService = eventLogService;
+            this.progressiveCache = progressiveCache;
         }
 
 
@@ -95,45 +100,47 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public async Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string entityName)
         {
-            return await CacheHelper.CacheAsync(async cacheSettings =>
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
+            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
             {
-                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
-                var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
 
-                    return null;
-                }
+                return null;
+            }
 
-                var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var jObject = JObject.Parse(sourceJson);
-                var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
-                return attributes.Where(attr =>
-                    attr.AttributeType != EntityAttributeType.PICKLIST
-                    && attr.AttributeType != EntityAttributeType.VIRTUAL
-                    && attr.AttributeType != EntityAttributeType.LOOKUP
-                    && !attr.IsPrimaryId
-                ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
-            },
-            new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_DURATION).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetEntityAttributes)}|{entityName}")).ConfigureAwait(false);
+            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var jObject = JObject.Parse(sourceJson);
+            var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
+            return attributes.Where(attr =>
+                attr.AttributeType != EntityAttributeType.PICKLIST
+                && attr.AttributeType != EntityAttributeType.VIRTUAL
+                && attr.AttributeType != EntityAttributeType.LOOKUP
+                && !attr.IsPrimaryId
+            ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+        }
+
+
+        public async Task<Dynamics365EntityModel> GetOptionSet(string entityName, string attributeName)
+        {
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_OPTIONSET, entityName, attributeName);
+            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
         }
 
 
         public async Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers()
         {
-            return await CacheHelper.CacheAsync(async cacheSettings =>
-            {
-                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
-                var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-                var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var jObject = JObject.Parse(sourceJson);
-                var userArray = jObject.Value<JArray>("value");
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
+            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var jObject = JObject.Parse(sourceJson);
+            var userArray = jObject.Value<JArray>("value");
 
-                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
-            },
-            new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_DURATION).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetSystemUsers)}")).ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
         }
 
         

@@ -40,7 +40,7 @@
         /// The human-friendly label for the attribute.
         /// </summary>
         /// <remarks>See <see href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.xrm.sdk.metadata.entitymetadata.displayname?view=dynamics-general-ce-9"/>.</remarks>
-        public Dynamics365EntityAttributeDisplayName DisplayName
+        public Dynamics365Label DisplayName
         {
             get;
             set;

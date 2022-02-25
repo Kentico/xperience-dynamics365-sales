@@ -2,6 +2,7 @@
 using CMS.Activities;
 using CMS.Core;
 using CMS.DataEngine;
+using CMS.Helpers;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models.Activities;
@@ -33,32 +34,24 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public JObject MapActivity(string entityName, string dynamicsId, ActivityInfo activity = null)
+        public JObject MapActivity(string entityName, string dynamicsId, object relatedData)
         {
             var entity = new JObject();
-
-            if (activity != null)
-            {
-                entity.Add("actualstart", activity.ActivityCreated);
-            }
-            
-            entity.Add("isregularactivity", true);
-            entity.Add("regardingobjectid_contact@odata.bind", $"/contacts({dynamicsId})");
-
-            // Set activity owner
-            var defaultOwner = settingsService[Dynamics365Constants.SETTING_DEFAULTOWNER];
-            if (!String.IsNullOrEmpty(defaultOwner))
-            {
-                entity.Add("ownerid@odata.bind", defaultOwner);
-            }
+            MapCommonActivityProperties(dynamicsId, entity, relatedData);
 
             switch (entityName)
             {
                 case Dynamics365Constants.ACTIVITY_PHONECALL:
-                    MapPhoneCallProperties(dynamicsId, entity, activity);
+                    MapPhoneCallProperties(dynamicsId, entity, relatedData);
                     break;
                 case Dynamics365Constants.ACTIVITY_EMAIL:
-                    MapEmailProperties(dynamicsId, entity, activity);
+                    MapEmailProperties(dynamicsId, entity, relatedData);
+                    break;
+                case Dynamics365Constants.ACTIVITY_APPOINTMENT:
+                    MapAppointmentProperties(dynamicsId, entity, relatedData);
+                    break;
+                case Dynamics365Constants.ACTIVITY_TASK:
+                    MapTaskProperties(dynamicsId, entity, relatedData);
                     break;
             }
 
@@ -92,9 +85,119 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        private void MapPhoneCallProperties(string dynamicsId, JObject entity, ActivityInfo activity)
+        private void MapCommonActivityProperties(string dynamicsId, JObject entity, object relatedData)
         {
-            var phoneCallModel = JsonConvert.DeserializeObject<Dynamics365PhoneCallModel>(activity.ActivityValue);
+            if (relatedData is ActivityInfo)
+            {
+                entity.Add("actualstart", (relatedData as ActivityInfo).ActivityCreated);
+            }
+
+            entity.Add("isregularactivity", true);
+            entity.Add("regardingobjectid_contact@odata.bind", $"/contacts({dynamicsId})");
+
+            // Set activity owner
+            var defaultOwner = settingsService[Dynamics365Constants.SETTING_DEFAULTOWNER];
+            if (!String.IsNullOrEmpty(defaultOwner))
+            {
+                entity.Add("ownerid@odata.bind", defaultOwner);
+            }
+        }
+
+
+        private void MapAppointmentProperties(string dynamicsId, JObject entity, object relatedData)
+        {
+            if (!(relatedData is Dynamics365AppointmentModel))
+            {
+                throw new InvalidOperationException($"{nameof(Dynamics365AppointmentModel)} is required to map the phone call activity.");
+            }
+
+            var appointmentModel = relatedData as Dynamics365AppointmentModel;
+            entity.Add("subject", appointmentModel.Subject);
+            entity.Add("isalldayevent", appointmentModel.IsAllDay);
+            entity.Add("scheduleddurationminutes", appointmentModel.IsAllDay ? 1440 : ValidationHelper.GetInteger(appointmentModel.EndTime.Subtract(appointmentModel.StartTime).TotalMinutes, 0));
+
+            if (!String.IsNullOrEmpty(appointmentModel.Description))
+            {
+                entity.Add("description", appointmentModel.Description);
+            }
+
+            var parties = new JArray();
+            if (!String.IsNullOrEmpty(appointmentModel.RequiredAttendee))
+            {
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.RequiredAttendee), new JProperty("partyid_systemuser@odata.bind", appointmentModel.RequiredAttendee)));
+            }
+
+            if (!String.IsNullOrEmpty(appointmentModel.OptionalAttendee))
+            {
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.OptionalAttendee), new JProperty("partyid_systemuser@odata.bind", appointmentModel.OptionalAttendee)));
+            }
+
+            if (parties.Count > 0)
+            {
+                entity.Add("appointment_activity_parties", parties);
+            }
+
+            if (!String.IsNullOrEmpty(appointmentModel.Location))
+            {
+                entity.Add("location", appointmentModel.Location);
+            }
+
+            if (appointmentModel.StartTime > DateTime.MinValue)
+            {
+                entity.Add("scheduledstart", appointmentModel.StartTime);
+            }
+
+            if (appointmentModel.EndTime > DateTime.MinValue)
+            {
+                entity.Add("scheduledend", appointmentModel.EndTime);
+            }
+            else if (appointmentModel.IsAllDay)
+            {
+                entity.Add("scheduledend", appointmentModel.StartTime.AddDays(1));
+            }
+        }
+
+
+        private void MapTaskProperties(string dynamicsId, JObject entity, object relatedData)
+        {
+            if (!(relatedData is Dynamics365TaskModel))
+            {
+                throw new InvalidOperationException($"{nameof(Dynamics365TaskModel)} is required to map the phone call activity.");
+            }
+
+            var taskModel = relatedData as Dynamics365TaskModel;
+            entity.Add("subject",  taskModel.Subject);
+
+            if (!String.IsNullOrEmpty(taskModel.Description))
+            {
+                entity.Add("description", taskModel.Description);
+            }
+
+            if (taskModel.DueInHours > 0)
+            {
+                entity.Add("scheduledend", DateTime.Now.AddHours(taskModel.DueInHours));
+            }
+
+            if (taskModel.DurationMinutes > 0)
+            {
+                entity.Add("actualdurationminutes", taskModel.DurationMinutes);
+            }
+
+            if (taskModel.Priority > -1)
+            {
+                entity.Add("prioritycode", taskModel.Priority);
+            }
+        }
+
+
+        private void MapPhoneCallProperties(string dynamicsId, JObject entity, object relatedData)
+        {
+            if (!(relatedData is ActivityInfo))
+            {
+                throw new InvalidOperationException($"{nameof(ActivityInfo)} is required to map the phone call activity.");
+            }
+
+            var phoneCallModel = JsonConvert.DeserializeObject<Dynamics365PhoneCallModel>((relatedData as ActivityInfo).ActivityValue);
             entity.Add("subject", phoneCallModel.Subject);
             entity.Add("phonenumber", phoneCallModel.PhoneNumber);
             entity.Add("description", phoneCallModel.Description);
@@ -117,9 +220,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        private void MapEmailProperties(string dynamicsId, JObject entity, ActivityInfo activity)
+        private void MapEmailProperties(string dynamicsId, JObject entity, object relatedData)
         {
-            var emailModel = JsonConvert.DeserializeObject<Dynamics365EmailModel>(activity.ActivityValue);
+            if (!(relatedData is ActivityInfo))
+            {
+                throw new InvalidOperationException($"{nameof(ActivityInfo)} is required to map the phone call activity.");
+            }
+
+            var emailModel = JsonConvert.DeserializeObject<Dynamics365EmailModel>((relatedData as ActivityInfo).ActivityValue);
             entity.Add("subject", emailModel.Subject);
             entity.Add("description", emailModel.Body);
 

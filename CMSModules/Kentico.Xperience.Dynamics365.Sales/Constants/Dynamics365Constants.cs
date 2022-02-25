@@ -6,9 +6,9 @@
     public static class Dynamics365Constants
     {
         /// <summary>
-        /// The number of minutes data retrieved from Dynamics 365 is cached.
+        /// The code name for the appointment activity type.
         /// </summary>
-        public const int CACHE_DURATION = 30;
+        public const string ACTIVITY_APPOINTMENT = "appointment";
 
 
         /// <summary>
@@ -51,6 +51,12 @@
         /// The Web API endpoint for retrieving the attributes of an Entity.
         /// </summary>
         public const string ENDPOINT_ENTITY_ATTRIBUTES = "/EntityDefinitions(LogicalName='{0}')/Attributes?$select=LogicalName,AttributeType,DisplayName,IsPrimaryId,RequiredLevel";
+
+
+        /// <summary>
+        /// The Web API endpoint for retrieving the options of an Entity's attribute.
+        /// </summary>
+        public const string ENDPOINT_OPTIONSET = "/EntityDefinitions(LogicalName='{0}')/Attributes(LogicalName='{1}')/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?$select=LogicalName&$expand=OptionSet";
 
 
         /// <summary>

@@ -32,6 +32,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
 
         /// <summary>
+        /// Gets an attribute Entity with its available options.
+        /// </summary>
+        /// <param name="entityName">The Entity to retrieve the attribute from.</param>
+        /// <param name="attributeName">The attribute to retrieve options for.</param>
+        /// <returns></returns>
+        Task<Dynamics365EntityModel> GetOptionSet(string entityName, string attributeName);
+
+
+        /// <summary>
         /// Gets the Dynamics 365 systemuser objects.
         /// </summary>
         Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers();

@@ -15,8 +15,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// you to synchronize Xperience activities to Dynamics 365 if the code names do not match, e.g. if
         /// the Xperience activity is "pageview" and the Dynamics 365 Entity is "pagevisit."
         /// </summary>
-        /// <param name="activityType"></param>
-        /// <returns></returns>
+        /// <param name="activityType">The Xperience activity type.</param>
+        /// <returns>The Dynamics 365 Entity name.</returns>
         string MapActivityType(string activityType);
 
 

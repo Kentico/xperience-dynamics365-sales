@@ -34,6 +34,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
+        private string DefaultOwner
+        {
+            get
+            {
+                return settingsService[Dynamics365Constants.SETTING_DEFAULTOWNER];
+            }
+        }
+
+
         public JObject MapActivity(string entityName, string dynamicsId, object relatedData)
         {
             var entity = new JObject();
@@ -54,6 +63,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     MapTaskProperties(dynamicsId, entity, relatedData);
                     break;
             }
+
+            DecodeValues(entity);
 
             return entity;
         }
@@ -81,7 +92,21 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 entity.Remove(propertyName);
             }
 
+            DecodeValues(entity);
+
             return entity;
+        }
+
+
+        private void DecodeValues(JObject entity)
+        {
+            foreach(var property in entity.Properties())
+            {
+                if (property.Value.Type == JTokenType.String)
+                {
+                    property.Value = JToken.FromObject(HTMLHelper.HTMLDecode(property.Value.Value<string>()));
+                }
+            }
         }
 
 
@@ -95,11 +120,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             entity.Add("isregularactivity", true);
             entity.Add("regardingobjectid_contact@odata.bind", $"/contacts({dynamicsId})");
 
-            // Set activity owner
-            var defaultOwner = settingsService[Dynamics365Constants.SETTING_DEFAULTOWNER];
-            if (!String.IsNullOrEmpty(defaultOwner))
+            if (!String.IsNullOrEmpty(DefaultOwner))
             {
-                entity.Add("ownerid@odata.bind", defaultOwner);
+                entity.Add("ownerid@odata.bind", DefaultOwner);
             }
         }
 
@@ -108,7 +131,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             if (!(relatedData is Dynamics365AppointmentModel))
             {
-                throw new InvalidOperationException($"{nameof(Dynamics365AppointmentModel)} is required to map the phone call activity.");
+                throw new InvalidOperationException($"{nameof(Dynamics365AppointmentModel)} is required to map the appointment activity.");
             }
 
             var appointmentModel = relatedData as Dynamics365AppointmentModel;
@@ -130,6 +153,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             if (!String.IsNullOrEmpty(appointmentModel.OptionalAttendee))
             {
                 parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.OptionalAttendee), new JProperty("partyid_systemuser@odata.bind", appointmentModel.OptionalAttendee)));
+            }
+
+            if (!String.IsNullOrEmpty(DefaultOwner) && DefaultOwner.StartsWith("/systemuser"))
+            {
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Organizer), new JProperty("partyid_systemuser@odata.bind", DefaultOwner)));
             }
 
             if (parties.Count > 0)
@@ -162,7 +190,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             if (!(relatedData is Dynamics365TaskModel))
             {
-                throw new InvalidOperationException($"{nameof(Dynamics365TaskModel)} is required to map the phone call activity.");
+                throw new InvalidOperationException($"{nameof(Dynamics365TaskModel)} is required to map the task activity.");
             }
 
             var taskModel = relatedData as Dynamics365TaskModel;
@@ -224,7 +252,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             if (!(relatedData is ActivityInfo))
             {
-                throw new InvalidOperationException($"{nameof(ActivityInfo)} is required to map the phone call activity.");
+                throw new InvalidOperationException($"{nameof(ActivityInfo)} is required to map the email activity.");
             }
 
             var emailModel = JsonConvert.DeserializeObject<Dynamics365EmailModel>((relatedData as ActivityInfo).ActivityValue);

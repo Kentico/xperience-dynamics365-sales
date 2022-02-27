@@ -85,6 +85,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 var response = await CreateActivity(entity, entityToCreate).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    await MarkActivityComplete(entityToCreate, responseContent).ConfigureAwait(false);
+
                     synchronizedActivities++;
                 }
                 else
@@ -111,6 +114,32 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public bool SynchronizationEnabled()
         {
             return ValidationHelper.GetBoolean(settingsService[Dynamics365Constants.SETTING_ACTIVITIESENABLED], false);
+        }
+
+
+        private async Task MarkActivityComplete(string entity, string responseContent)
+        {
+            var responseData = JObject.Parse(responseContent);
+            var newId = responseData.Value<string>("activityid");
+            if (String.IsNullOrEmpty(newId))
+            {
+                return;
+            }
+
+            var stateEndpoint = String.Format(Dynamics365Constants.ENDPOINT_STATECODES, entity);
+            var entityStates = await dynamics365Client.GetEntity(stateEndpoint).ConfigureAwait(false);
+            var completedState = entityStates.OptionSet.Options.FirstOrDefault(opt => opt.InvariantName == "Completed");
+            if (completedState == null)
+            {
+                return;
+            }
+
+            var patchData = new JObject();
+            patchData.Add("statecode", completedState.Value);
+            patchData.Add("statuscode", completedState.DefaultStatus);
+            
+            var patchEndpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH, entity, newId);
+            await dynamics365Client.SendRequest(patchEndpoint, new HttpMethod("PATCH"), patchData).ConfigureAwait(false);
         }
     }
 }

@@ -122,9 +122,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<Dynamics365EntityModel> GetOptionSet(string entityName, string attributeName)
+        public async Task<Dynamics365EntityModel> GetEntity(string endpoint)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_OPTIONSET, entityName, attributeName);
             var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 

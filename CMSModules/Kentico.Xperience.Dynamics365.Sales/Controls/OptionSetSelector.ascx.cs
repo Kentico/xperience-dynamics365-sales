@@ -2,6 +2,7 @@
 using CMS.FormEngine.Web.UI;
 using CMS.Helpers;
 
+using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System;
@@ -52,7 +53,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
                 throw new InvalidOperationException("The required properties are not set for the form control.");
             }
 
-            var entity = Service.Resolve<IDynamics365Client>().GetOptionSet(EntityName, AttributeName).ConfigureAwait(false).GetAwaiter().GetResult();
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_OPTIONSET, EntityName, AttributeName);
+            var entity = Service.Resolve<IDynamics365Client>().GetEntity(endpoint).ConfigureAwait(false).GetAwaiter().GetResult();
 
             drpOptions.Items.Add(new ListItem("(not set)", String.Empty));
             foreach(var option in entity.OptionSet.Options)

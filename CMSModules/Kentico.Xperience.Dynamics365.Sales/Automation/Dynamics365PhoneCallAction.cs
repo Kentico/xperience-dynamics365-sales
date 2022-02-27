@@ -6,6 +6,7 @@ using CMS.Membership;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models.Activities;
+using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using Newtonsoft.Json;
@@ -20,6 +21,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
     /// </summary>
     public class Dynamics365PhoneCallAction : AutomationAction
     {
+        private IDynamics365Client dynamics365Client;
+
+
         public override void Execute()
         {
             var subject = GetResolvedParameter("Subject", String.Empty);
@@ -30,6 +34,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
                 throw new InvalidOperationException("The required properties are not set for the automation step.");
             }
 
+            dynamics365Client = Service.Resolve<IDynamics365Client>();
             var contact = ContactInfo.Provider.Get(StateObject.StateObjectID);
             var callTo = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
             var phoneNumber = String.IsNullOrEmpty(contact.ContactBusinessPhone) ? contact.ContactMobilePhone : contact.ContactBusinessPhone;
@@ -95,7 +100,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             }
 
             // Find Dynamics user with same email address
-            var systemUsers = Service.Resolve<IDynamics365Client>().GetSystemUsers().ConfigureAwait(false).GetAwaiter().GetResult();
+            var systemUsers = dynamics365Client.GetSystemUsers().ConfigureAwait(false).GetAwaiter().GetResult();
             var matchingUser = systemUsers.FirstOrDefault(user => user.InternalEmailAddress.Equals(userEmail, StringComparison.OrdinalIgnoreCase));
             if (matchingUser == null)
             {

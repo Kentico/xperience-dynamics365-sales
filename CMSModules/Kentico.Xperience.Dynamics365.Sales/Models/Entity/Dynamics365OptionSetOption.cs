@@ -6,9 +6,29 @@
     public class Dynamics365OptionSetOption
     {
         /// <summary>
-        /// The value (identifier) of the option.
+        /// The value of the option.
         /// </summary>
         public int Value
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
+        /// Internal name of a state option that never changes.
+        /// </summary>
+        public string InvariantName
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
+        /// The ID of a state option's default status code.
+        /// </summary>
+        public int DefaultStatus
         {
             get;
             set;

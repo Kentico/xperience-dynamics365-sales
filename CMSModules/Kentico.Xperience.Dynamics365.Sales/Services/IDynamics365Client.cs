@@ -32,12 +32,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
 
         /// <summary>
-        /// Gets an attribute Entity with its available options.
+        /// Gets an Entity definition from Dynamics 365. The available data in the returned model is
+        /// dependent on the <paramref name="endpoint"/> used.
         /// </summary>
-        /// <param name="entityName">The Entity to retrieve the attribute from.</param>
-        /// <param name="attributeName">The attribute to retrieve options for.</param>
-        /// <returns></returns>
-        Task<Dynamics365EntityModel> GetOptionSet(string entityName, string attributeName);
+        /// <param name="entityName">The fully-resolved Dynamics 365 Web API endpoint.</param>
+        Task<Dynamics365EntityModel> GetEntity(string endpoint);
 
 
         /// <summary>

@@ -54,6 +54,18 @@
 
 
         /// <summary>
+        /// The Web API endpoint for retrieving the options for an Entity's status.
+        /// </summary>
+        public const string ENDPOINT_STATUSCODES = "/EntityDefinitions(LogicalName='{0}')/Attributes(LogicalName='statuscode')/Microsoft.Dynamics.CRM.StatusAttributeMetadata?$select=LogicalName&$expand=OptionSet";
+
+
+        /// <summary>
+        /// The Web API endpoint for retrieving the options for an Entity's state.
+        /// </summary>
+        public const string ENDPOINT_STATECODES = "/EntityDefinitions(LogicalName='{0}')/Attributes(LogicalName='statecode')/Microsoft.Dynamics.CRM.StateAttributeMetadata?$select=LogicalName&$expand=OptionSet";
+
+
+        /// <summary>
         /// The Web API endpoint for retrieving the options of an Entity's attribute.
         /// </summary>
         public const string ENDPOINT_OPTIONSET = "/EntityDefinitions(LogicalName='{0}')/Attributes(LogicalName='{1}')/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?$select=LogicalName&$expand=OptionSet";

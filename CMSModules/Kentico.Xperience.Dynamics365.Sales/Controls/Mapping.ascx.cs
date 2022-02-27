@@ -46,16 +46,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
             base.OnPreRender(e);
             if (!Service.Resolve<IDynamics365ContactSync>().SynchronizationEnabled())
             {
-                ContainerControl.Visible = false;
-                MessageControl.InnerHtml = "Contact synchronization is disabled.";
-                MessageControl.Attributes.Add("class", "Red");
-                MessageControl.Visible = true;
+                ShowErrorMessage("Contact synchronization is disabled.");
                 return;
             }
 
             entityAttributes = LoadEntity();
             if (entityAttributes.Count() == 0)
             {
+                ShowErrorMessage("Unable to load contact fields. Please check the Event Log.");
                 return;
             }
 
@@ -99,10 +97,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
             }
             catch (InvalidOperationException ex)
             {
-                ContainerControl.Visible = false;
-                MessageControl.InnerHtml = ex.Message;
-                MessageControl.Attributes.Add("class", "Red");
-                MessageControl.Visible = true;
+                ShowErrorMessage(ex.Message);
             }
 
             return Enumerable.Empty<Dynamics365EntityAttributeModel>();
@@ -151,6 +146,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
 
                 ddl.SelectedValue = propertyWithContactField.Name;
             }
+        }
+
+
+        private void ShowErrorMessage(string message)
+        {
+            ContainerControl.Visible = false;
+            MessageControl.InnerHtml = message;
+            MessageControl.Attributes.Add("class", "Red");
+            MessageControl.Visible = true;
         }
     }
 }

@@ -131,8 +131,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 if(String.IsNullOrEmpty(dynamicsId))
                 {
                     var fullEntity = dynamics365EntityMapper.MapEntity("contact", mappingDefinition, contact);
-                    if (fullEntity == null)
+                    if (fullEntity.Count == 0)
                     {
+                        unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
                         continue;
                     }
 
@@ -141,8 +142,16 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 else
                 {
                     var partialEntity = await dynamics365EntityMapper.MapPartialEntity("contact", mappingDefinition, dynamicsId, contact).ConfigureAwait(false);
+                    if (partialEntity.Count == 0)
+                    {
+                        // It isn't an error to have zero properties (contact is up-to-date)
+                        continue;
+                    }
+
                     if (partialEntity == null)
                     {
+                        unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                        synchronizationErrors.Add("Unable to map partial object.");
                         continue;
                     }
 

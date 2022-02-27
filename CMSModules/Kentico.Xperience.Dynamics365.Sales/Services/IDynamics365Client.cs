@@ -36,11 +36,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// dependent on the <paramref name="endpoint"/> used.
         /// </summary>
         /// <param name="entityName">The fully-resolved Dynamics 365 Web API endpoint.</param>
+        /// <returns>The Entity, or null if there were errors.</returns>
         Task<Dynamics365EntityModel> GetEntity(string endpoint);
 
 
         /// <summary>
-        /// Gets the Dynamics 365 systemuser objects.
+        /// Gets the Dynamics 365 systemuser objects, or an empty enumerable.
         /// </summary>
         Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers();
 

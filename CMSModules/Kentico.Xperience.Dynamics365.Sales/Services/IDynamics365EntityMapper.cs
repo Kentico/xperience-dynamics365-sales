@@ -52,7 +52,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// Xperience fields.</param>
         /// <param name="dynamicsId">The ID of the existing object within Dynamics 365.</param>
         /// <param name="sourceObject">The Xperience object which triggered the Entity creation.</param>
-        /// <returns>An object with the updated Xperience fields mapped to Dynamics 365 fields.</returns>
+        /// <returns>An object with the updated Xperience fields mapped to Dynamics 365 fields, or null if there was an error.</returns>
         Task<JObject> MapPartialEntity(string entityName, string mapping, string dynamicsId, BaseInfo sourceObject);
     }
 }

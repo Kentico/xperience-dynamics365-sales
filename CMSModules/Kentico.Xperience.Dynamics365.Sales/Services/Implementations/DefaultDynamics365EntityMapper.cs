@@ -23,12 +23,17 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     {
         private readonly ISettingsService settingsService;
         private readonly IDynamics365Client dynamics365Client;
+        private readonly IEventLogService eventLogService;
 
 
-        public DefaultDynamics365EntityMapper(ISettingsService settingsService, IDynamics365Client dynamics365Client)
+        public DefaultDynamics365EntityMapper(
+            ISettingsService settingsService,
+            IDynamics365Client dynamics365Client,
+            IEventLogService eventLogService)
         {
             this.settingsService = settingsService;
             this.dynamics365Client = dynamics365Client;
+            this.eventLogService = eventLogService;
         }
 
 
@@ -108,12 +113,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             var fullEntity = MapEntity(entityName, mapping, sourceObject);
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entityName, dynamicsId);
             var response = await dynamics365Client.SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                eventLogService.LogError(nameof(DefaultDynamics365EntityMapper), nameof(MapPartialEntity), $"Error while retrieving existing Dynamics 365 Entity: {responseContent}");
                 return null;
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var dynamicsObject = JObject.Parse(responseContent);
             var propertiesToRemove = new List<string>();
             foreach(var property in fullEntity.Properties())

@@ -27,7 +27,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
 
         /// <summary>
-        /// Gets all Entities in Dynamics 365 which are marked as activities.
+        /// Gets all Entities in Dynamics 365 which are marked as activities, or an empty enumerable.
         /// </summary>
         Task<IEnumerable<Dynamics365EntityModel>> GetAllActivities();
 

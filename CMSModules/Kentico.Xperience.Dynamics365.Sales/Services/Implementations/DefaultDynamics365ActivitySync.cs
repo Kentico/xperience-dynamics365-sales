@@ -26,18 +26,21 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly IDynamics365EntityMapper dynamics365EntityMapper;
         private readonly ISettingsService settingsService;
         private readonly IProgressiveCache progressiveCache;
+        private readonly IEventLogService eventLogService;
 
 
         public DefaultDynamics365ActivitySync(
             IDynamics365Client dynamics365Client,
             IDynamics365EntityMapper dynamics365EntityMapper,
             ISettingsService settingsService,
-            IProgressiveCache progressiveCache)
+            IProgressiveCache progressiveCache,
+            IEventLogService eventLogService)
         {
             this.dynamics365Client = dynamics365Client;
             this.dynamics365EntityMapper = dynamics365EntityMapper;
             this.settingsService = settingsService;
             this.progressiveCache = progressiveCache;
+            this.eventLogService = eventLogService;
         }
 
 
@@ -52,13 +55,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public async Task<IEnumerable<Dynamics365EntityModel>> GetAllActivities()
         {
             var response = await dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(GetAllActivities), $"Error while retrieving Dynamics 365 activities: {responseContent}");
                 return Enumerable.Empty<Dynamics365EntityModel>();
             }
 
-            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var jObject = JObject.Parse(sourceJson);
+            var jObject = JObject.Parse(responseContent);
 
             return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
         }
@@ -70,6 +74,17 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             var unsyncedActivities = new List<string>();
             var synchronizationErrors = new List<string>();
             var dynamicsActivityEntities = await GetAllActivities().ConfigureAwait(false);
+            if (dynamicsActivityEntities.Count() == 0)
+            {
+                return new SynchronizationResult
+                {
+                    HasErrors = true,
+                    SynchronizationErrors = new List<string>() { "Unable to retrieve activity types." },
+                    SynchronizedObjectCount = 0,
+                    UnsynchronizedObjectIdentifiers = activities.Select(activity => $"{activity.ActivityTitle} ({activity.ActivityID})")
+                };
+            }
+
             var dynamicsActivityNames = dynamicsActivityEntities.Select(entity => entity.LogicalName);
 
             foreach (var activity in activities)
@@ -128,6 +143,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
             var stateEndpoint = String.Format(Dynamics365Constants.ENDPOINT_STATECODES, entity);
             var entityStates = await dynamics365Client.GetEntity(stateEndpoint).ConfigureAwait(false);
+            if (entityStates == null)
+            {
+                return;
+            }
+
             var completedState = entityStates.OptionSet.Options.FirstOrDefault(opt => opt.InvariantName == "Completed");
             if (completedState == null)
             {

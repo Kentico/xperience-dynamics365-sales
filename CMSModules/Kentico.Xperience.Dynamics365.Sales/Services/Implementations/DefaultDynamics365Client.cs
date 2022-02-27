@@ -126,8 +126,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
+            }
+            else
+            {
+                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntity), responseContent);
+                return null;
+            }
         }
 
 
@@ -135,11 +142,19 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
             var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var jObject = JObject.Parse(sourceJson);
-            var userArray = jObject.Value<JArray>("value");
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+            {
+                var jObject = JObject.Parse(responseContent);
+                var userArray = jObject.Value<JArray>("value");
 
-            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+            }
+            else
+            {
+                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetSystemUsers), responseContent);
+                return Enumerable.Empty<Dynamics365SystemUser>();
+            }
         }
 
         

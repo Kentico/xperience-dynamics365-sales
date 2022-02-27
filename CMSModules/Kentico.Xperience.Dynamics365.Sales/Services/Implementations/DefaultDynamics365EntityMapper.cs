@@ -13,6 +13,8 @@ using Newtonsoft.Json.Linq;
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 [assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(DefaultDynamics365EntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -20,11 +22,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
     public class DefaultDynamics365EntityMapper : IDynamics365EntityMapper
     {
         private readonly ISettingsService settingsService;
+        private readonly IDynamics365Client dynamics365Client;
 
 
-        public DefaultDynamics365EntityMapper(ISettingsService settingsService)
+        public DefaultDynamics365EntityMapper(ISettingsService settingsService, IDynamics365Client dynamics365Client)
         {
             this.settingsService = settingsService;
+            this.dynamics365Client = dynamics365Client;
         }
 
 
@@ -95,6 +99,40 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             DecodeValues(entity);
 
             return entity;
+        }
+
+
+        public async Task<JObject> MapPartialEntity(string entityName, string mapping, string dynamicsId, BaseInfo sourceObject)
+        {
+            var mappingDefinition = JObject.Parse(mapping);
+            var fullEntity = MapEntity(entityName, mapping, sourceObject);
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entityName, dynamicsId);
+            var response = await dynamics365Client.SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var dynamicsObject = JObject.Parse(responseContent);
+            var propertiesToRemove = new List<string>();
+            foreach(var property in fullEntity.Properties())
+            {
+                var xperienceColumnName = mappingDefinition.Value<string>(property.Name);
+                var xperienceValue = sourceObject.GetStringValue(xperienceColumnName, String.Empty);
+                if (String.IsNullOrEmpty(xperienceValue) || xperienceValue == dynamicsObject.Value<string>(property.Name))
+                {
+                    // Column doesn't exist in Xperience, or the value matches Dynamics
+                    propertiesToRemove.Add(property.Name);
+                }
+            }
+
+            foreach (var propertyName in propertiesToRemove)
+            {
+                fullEntity.Remove(propertyName);
+            }
+
+            return fullEntity;
         }
 
 

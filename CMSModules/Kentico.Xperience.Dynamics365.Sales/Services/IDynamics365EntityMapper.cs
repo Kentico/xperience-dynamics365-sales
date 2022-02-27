@@ -3,6 +3,8 @@ using CMS.DataEngine;
 
 using Newtonsoft.Json.Linq;
 
+using System.Threading.Tasks;
+
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
     /// <summary>
@@ -39,5 +41,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <param name="sourceObject">The Xperience object which triggered the Entity creation.</param>
         /// <returns>An object with Dynamics 365 fields and their values.</returns>
         JObject MapEntity(string entityName, string mapping, BaseInfo sourceObject);
+
+
+        /// <summary>
+        /// Creates an anonymous object for updating purposes from an Xperience object which has a defined field mapping.
+        /// The returned object should only contain fields that have been updated locally and not updated within Dynamics 365.
+        /// </summary>
+        /// <param name="entityName">The name of the Entity that is being updated based on the current task/event.</param>
+        /// <param name="mapping">The mapping definition containing Dynamics 365 fields and their mapped
+        /// Xperience fields.</param>
+        /// <param name="dynamicsId">The ID of the existing object within Dynamics 365.</param>
+        /// <param name="sourceObject">The Xperience object which triggered the Entity creation.</param>
+        /// <returns>An object with the updated Xperience fields mapped to Dynamics 365 fields.</returns>
+        Task<JObject> MapPartialEntity(string entityName, string mapping, string dynamicsId, BaseInfo sourceObject);
     }
 }

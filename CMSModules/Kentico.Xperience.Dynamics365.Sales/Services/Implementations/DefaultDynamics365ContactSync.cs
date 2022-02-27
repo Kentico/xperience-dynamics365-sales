@@ -125,22 +125,28 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             var synchronizationErrors = new List<string>();
             foreach (var contact in contacts)
             {
-                var entity = dynamics365EntityMapper.MapEntity("contact", mappingDefinition, contact);
-                if (entity == null)
-                {
-                    continue;
-                }
-
                 // Send request
                 var dynamicsId = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
                 HttpResponseMessage response;
                 if(String.IsNullOrEmpty(dynamicsId))
                 {
-                    response = await CreateContact(contact, entity).ConfigureAwait(false);
+                    var fullEntity = dynamics365EntityMapper.MapEntity("contact", mappingDefinition, contact);
+                    if (fullEntity == null)
+                    {
+                        continue;
+                    }
+
+                    response = await CreateContact(contact, fullEntity).ConfigureAwait(false);
                 }
                 else
                 {
-                    response = await UpdateContact(dynamicsId, entity).ConfigureAwait(false);
+                    var partialEntity = await dynamics365EntityMapper.MapPartialEntity("contact", mappingDefinition, dynamicsId, contact).ConfigureAwait(false);
+                    if (partialEntity == null)
+                    {
+                        continue;
+                    }
+
+                    response = await UpdateContact(dynamicsId, partialEntity).ConfigureAwait(false);
                 }
 
                 // Handle response
@@ -171,7 +177,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public async Task<HttpResponseMessage> UpdateContact(string dynamicsId, JObject data)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH, "contact", dynamicsId);
+            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, "contact", dynamicsId);
 
             return await dynamics365Client.SendRequest(endpoint, new HttpMethod("PATCH"), data).ConfigureAwait(false);
         }

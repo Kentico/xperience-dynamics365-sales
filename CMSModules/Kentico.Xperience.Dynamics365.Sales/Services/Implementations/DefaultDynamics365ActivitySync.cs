@@ -138,7 +138,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             patchData.Add("statecode", completedState.Value);
             patchData.Add("statuscode", completedState.DefaultStatus);
             
-            var patchEndpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH, entity, newId);
+            var patchEndpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entity, newId);
             await dynamics365Client.SendRequest(patchEndpoint, new HttpMethod("PATCH"), patchData).ConfigureAwait(false);
         }
     }

@@ -36,15 +36,15 @@
 
 
         /// <summary>
-        /// The Web API endpoint for getting or creating Entities.
+        /// The Web API endpoint for getting multiple Entities or creating a single Entity.
         /// </summary>
         public const string ENDPOINT_ENTITY_GET_POST = "/{0}s";
 
 
         /// <summary>
-        /// The Web API endpoint for updating Entities.
+        /// The Web API endpoint for updating an Entity or retrieving a single Entity.
         /// </summary>
-        public const string ENDPOINT_ENTITY_PATCH = "/{0}s({1})";
+        public const string ENDPOINT_ENTITY_PATCH_GETSINGLE = "/{0}s({1})";
 
 
         /// <summary>

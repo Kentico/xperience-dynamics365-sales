@@ -19,6 +19,9 @@ using System.Threading.Tasks;
 [assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(DefaultDynamics365EntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
+    /// <summary>
+    /// The default implementation of <see cref="IDynamics365EntityMapper"/>.
+    /// </summary>
     public class DefaultDynamics365EntityMapper : IDynamics365EntityMapper
     {
         private readonly ISettingsService settingsService;
@@ -26,6 +29,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly IEventLogService eventLogService;
 
 
+        private string DefaultOwner
+        {
+            get
+            {
+                return settingsService[Dynamics365Constants.SETTING_DEFAULTOWNER];
+            }
+        }
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DefaultDynamics365EntityMapper"/> class.
+        /// </summary>
         public DefaultDynamics365EntityMapper(
             ISettingsService settingsService,
             IDynamics365Client dynamics365Client,
@@ -40,15 +55,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public string MapActivityType(string activityType)
         {
             return activityType;
-        }
-
-
-        private string DefaultOwner
-        {
-            get
-            {
-                return settingsService[Dynamics365Constants.SETTING_DEFAULTOWNER];
-            }
         }
 
 

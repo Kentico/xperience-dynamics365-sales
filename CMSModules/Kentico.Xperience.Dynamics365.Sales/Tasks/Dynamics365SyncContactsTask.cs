@@ -4,6 +4,7 @@ using CMS.Scheduler;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System;
+using System.Linq;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Tasks
 {
@@ -20,8 +21,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
                 return "Contact synchronization is disabled.";
             }
 
-            var contactsWithScore = contactSyncService.GetContactsWithScore();
-            var result = contactSyncService.SynchronizeContacts(contactsWithScore).ConfigureAwait(false).GetAwaiter().GetResult();
+            // Merge contacts with score and contacts with linked ID, as they may have been synced by automation step without
+            // meeting score requirements
+            var contactsWithScore = contactSyncService.GetContactsWithScore().ToList();
+            var contactsWithLink = contactSyncService.GetSynchronizedContacts().ToList();
+            var contactsToSync = contactsWithLink.Union(contactsWithScore);
+
+            var result = contactSyncService.SynchronizeContacts(contactsToSync).ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (result.HasErrors)
             {

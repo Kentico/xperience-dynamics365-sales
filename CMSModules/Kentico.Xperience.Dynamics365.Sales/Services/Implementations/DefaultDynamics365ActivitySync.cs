@@ -20,6 +20,9 @@ using System.Threading.Tasks;
 [assembly: RegisterImplementation(typeof(IDynamics365ActivitySync), typeof(DefaultDynamics365ActivitySync), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
+    /// <summary>
+    /// The default implementation of <see cref="IDynamics365ActivitySync"/>.
+    /// </summary>
     public class DefaultDynamics365ActivitySync : IDynamics365ActivitySync
     {
         private readonly IDynamics365Client dynamics365Client;
@@ -29,6 +32,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly IEventLogService eventLogService;
 
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DefaultDynamics365ActivitySync"/> class.
+        /// </summary>
         public DefaultDynamics365ActivitySync(
             IDynamics365Client dynamics365Client,
             IDynamics365EntityMapper dynamics365EntityMapper,

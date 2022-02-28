@@ -35,7 +35,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             }
 
             dynamics365Client = Service.Resolve<IDynamics365Client>();
-            var contact = ContactInfo.Provider.Get(StateObject.StateObjectID);
+            var contact = InfoObject as ContactInfo;
             var callTo = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
             var phoneNumber = String.IsNullOrEmpty(contact.ContactBusinessPhone) ? contact.ContactMobilePhone : contact.ContactBusinessPhone;
             var previousStepHistory = AutomationHistoryInfo.Provider.Get()

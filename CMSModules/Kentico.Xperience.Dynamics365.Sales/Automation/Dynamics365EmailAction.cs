@@ -32,7 +32,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
                 throw new InvalidOperationException("The required properties are not set for the automation step.");
             }
 
-            var contact = ContactInfo.Provider.Get(StateObject.StateObjectID);
+            var contact = InfoObject as ContactInfo;
             var email = GetSentEmail(siteId, contact);
             if (email == null)
             {

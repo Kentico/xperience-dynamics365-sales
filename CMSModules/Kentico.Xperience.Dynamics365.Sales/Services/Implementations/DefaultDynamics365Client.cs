@@ -84,7 +84,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<string> GetAccessToken()
+        public string GetAccessToken()
         {
             if (String.IsNullOrEmpty(ClientId) || String.IsNullOrEmpty(ClientSecret) || String.IsNullOrEmpty(DynamicsUrl) || String.IsNullOrEmpty(TenantId))
             {
@@ -92,73 +92,80 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             var authContext = new AuthenticationContext($"https://login.windows.net/{TenantId}", false);
-            var auth = await authContext.AcquireTokenAsync(DynamicsUrl, new ClientCredential(ClientId, ClientSecret)).ConfigureAwait(false);
+            var auth = authContext.AcquireTokenAsync(DynamicsUrl, new ClientCredential(ClientId, ClientSecret)).ConfigureAwait(false).GetAwaiter().GetResult();
 
             return auth.AccessToken;
         }
 
 
-        public async Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string entityName)
+        public IEnumerable<Dynamics365EntityAttributeModel> GetEntityAttributes(string entityName)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
-            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
+            return progressiveCache.Load(cacheSettings => {
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
+                var response = SendRequest(endpoint, HttpMethod.Get);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
+                    cacheSettings.Cached = false;
 
-                return null;
-            }
+                    return null;
+                }
 
-            var sourceJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var jObject = JObject.Parse(sourceJson);
-            var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
-            return attributes.Where(attr =>
-                attr.AttributeType != EntityAttributeType.PICKLIST
-                && attr.AttributeType != EntityAttributeType.VIRTUAL
-                && attr.AttributeType != EntityAttributeType.LOOKUP
-                && !attr.IsPrimaryId
-            ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+                var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                var jObject = JObject.Parse(sourceJson);
+                var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
+                return attributes.Where(attr =>
+                    attr.AttributeType != EntityAttributeType.PICKLIST
+                    && attr.AttributeType != EntityAttributeType.VIRTUAL
+                    && attr.AttributeType != EntityAttributeType.LOOKUP
+                    && !attr.IsPrimaryId
+                ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+            }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetEntityAttributes)}|{entityName}"));
         }
 
 
-        public async Task<Dynamics365EntityModel> GetEntity(string endpoint)
+        public Dynamics365EntityModel GetEntity(string endpoint)
         {
-            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (response.IsSuccessStatusCode)
-            {
-                return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
-            }
-            else
-            {
-                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntity), responseContent);
-                return null;
-            }
+            return progressiveCache.Load(cacheSettings => {
+                var response = SendRequest(endpoint, HttpMethod.Get);
+                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                if (response.IsSuccessStatusCode)
+                {
+                    return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
+                }
+                else
+                {
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntity), responseContent);
+                    return null;
+                }
+            }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetEntity)}|{endpoint}"));
         }
 
 
-        public async Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers()
+        public IEnumerable<Dynamics365SystemUser> GetSystemUsers()
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "systemuser") + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
-            var response = await SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (response.IsSuccessStatusCode)
-            {
-                var jObject = JObject.Parse(responseContent);
-                var userArray = jObject.Value<JArray>("value");
+            return progressiveCache.Load(cacheSettings => {
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_USER) + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
+                var response = SendRequest(endpoint, HttpMethod.Get);
+                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                if (response.IsSuccessStatusCode)
+                {
+                    var jObject = JObject.Parse(responseContent);
+                    var userArray = jObject.Value<JArray>("value");
 
-                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
-            }
-            else
-            {
-                eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetSystemUsers), responseContent);
-                return Enumerable.Empty<Dynamics365SystemUser>();
-            }
+                    return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+                }
+                else
+                {
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetSystemUsers), responseContent);
+                    return Enumerable.Empty<Dynamics365SystemUser>();
+                }
+            }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetSystemUsers)}"));
         }
 
         
-        public async Task<HttpResponseMessage> SendRequest(string endpoint, HttpMethod method, JObject data = null)
+        public HttpResponseMessage SendRequest(string endpoint, HttpMethod method, JObject data = null)
         {
             if (String.IsNullOrEmpty(endpoint))
             {
@@ -175,7 +182,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 throw new InvalidOperationException("Data must be provided for POST and PATCH methods.");
             }
 
-            var accessToken = await GetAccessToken().ConfigureAwait(false);
+            var accessToken = GetAccessToken();
             var url = $"{DynamicsUrl}{Dynamics365Constants.ENDPOINT_BASE}{endpoint}";
             using (var httpClient = new HttpClient())
             {
@@ -187,13 +194,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
                 if (method == HttpMethod.Get)
                 {
-                    return await httpClient.GetAsync(url).ConfigureAwait(false);
+                    return httpClient.GetAsync(url).ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 else if (method == HttpMethod.Post)
                 {
                     httpClient.DefaultRequestHeaders.Add("Prefer", "return=representation");
 
-                    return await httpClient.PostAsJsonAsync(url, data).ConfigureAwait(false);
+                    return httpClient.PostAsJsonAsync(url, data).ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 else if (method == patchMethod)
                 {
@@ -201,7 +208,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     var request = new HttpRequestMessage(patchMethod, url);
                     request.Content = new StringContent(data.ToString(), Encoding.UTF8, "application/json");
 
-                    return await httpClient.SendAsync(request).ConfigureAwait(false);
+                    return httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 else
                 {

@@ -14,7 +14,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 [assembly: RegisterImplementation(typeof(IDynamics365ContactSync), typeof(DefaultDynamics365ContactSync), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -56,13 +55,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<HttpResponseMessage> CreateContact(ContactInfo contact, JObject data)
+        public HttpResponseMessage CreateContact(ContactInfo contact, JObject data)
         {
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_CONTACT);
-            var response = await dynamics365Client.SendRequest(endpoint, HttpMethod.Post, data).ConfigureAwait(false);
+            var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Post, data);
             if (response.IsSuccessStatusCode)
             {
-                var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var responseJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 var createdContact = JObject.Parse(responseJson);
                 var dynamicsId = createdContact.Value<string>("contactid");
                 if (!String.IsNullOrEmpty(dynamicsId))
@@ -71,7 +70,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, dynamicsId);
                     contact.Update();
 
-                    await SynchronizeActivities(contact, dynamicsId);
+                    SynchronizeActivities(contact, dynamicsId);
                 }
                 else
                 {
@@ -107,7 +106,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<SynchronizationResult> SynchronizeContacts(IEnumerable<ContactInfo> contacts)
+        public SynchronizationResult SynchronizeContacts(IEnumerable<ContactInfo> contacts)
         {
             var mappingDefinition = settingsService[Dynamics365Constants.SETTING_FIELDMAPPING];
             if (String.IsNullOrEmpty(mappingDefinition))
@@ -137,11 +136,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                         continue;
                     }
 
-                    response = await CreateContact(contact, fullEntity).ConfigureAwait(false);
+                    response = CreateContact(contact, fullEntity);
                 }
                 else
                 {
-                    var partialEntity = await dynamics365EntityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact).ConfigureAwait(false);
+                    var partialEntity = dynamics365EntityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact);
                     if (partialEntity.Count == 0)
                     {
                         // It isn't an error to have zero properties (contact is up-to-date)
@@ -155,7 +154,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                         continue;
                     }
 
-                    response = await UpdateContact(dynamicsId, partialEntity).ConfigureAwait(false);
+                    response = UpdateContact(dynamicsId, partialEntity);
                 }
 
                 // Handle response
@@ -166,7 +165,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 else
                 {
                     unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                     if (!synchronizationErrors.Contains(responseContent))
                     {
                         synchronizationErrors.Add(responseContent);
@@ -184,22 +183,22 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<HttpResponseMessage> UpdateContact(string dynamicsId, JObject data)
+        public HttpResponseMessage UpdateContact(string dynamicsId, JObject data)
         {
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, Dynamics365Constants.ENTITY_CONTACT, dynamicsId);
 
-            return await dynamics365Client.SendRequest(endpoint, new HttpMethod("PATCH"), data).ConfigureAwait(false);
+            return dynamics365Client.SendRequest(endpoint, new HttpMethod("PATCH"), data);
         }
 
 
-        private async Task SynchronizeActivities(ContactInfo contact, string dynamicsId)
+        private void SynchronizeActivities(ContactInfo contact, string dynamicsId)
         {
             var activities = ActivityInfo.Provider.Get()
                     .WhereEquals(nameof(ActivityInfo.ActivityContactID), contact.ContactID)
                     .TypedResult
                     .ToList();
 
-            var result = await dynamics365ActivitySync.SynchronizeActivities(dynamicsId, activities).ConfigureAwait(false);
+            var result = dynamics365ActivitySync.SynchronizeActivities(dynamicsId, activities);
             if (result.HasErrors)
             {
                 var message = $"The following errors occurred during synchronization of contact '{contact.ContactDescriptiveName}' activities:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"

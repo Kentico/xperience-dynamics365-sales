@@ -6,6 +6,12 @@
     public static class Dynamics365Constants
     {
         /// <summary>
+        /// The duration of the cache for Dynamics 365 requests.
+        /// </summary>
+        public const int CACHE_MINUTES = 60;
+
+
+        /// <summary>
         /// The code name for the appointment activity type.
         /// </summary>
         public const string ACTIVITY_APPOINTMENT = "appointment";
@@ -33,6 +39,18 @@
         /// The Entity name of Dynamics 365 contacts.
         /// </summary>
         public const string ENTITY_CONTACT = "contact";
+
+
+        /// <summary>
+        /// The Entity name of Dynamics 365 users.
+        /// </summary>
+        public const string ENTITY_USER = "systemuser";
+
+
+        /// <summary>
+        /// The Entity name of Dynamics 365 teams.
+        /// </summary>
+        public const string ENTITY_TEAM = "team";
 
 
         /// <summary>

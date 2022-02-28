@@ -14,7 +14,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 [assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(DefaultDynamics365EntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -27,6 +26,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly ISettingsService settingsService;
         private readonly IDynamics365Client dynamics365Client;
         private readonly IEventLogService eventLogService;
+        private readonly IProgressiveCache progressiveCache;
 
 
         private string DefaultOwner
@@ -44,11 +44,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public DefaultDynamics365EntityMapper(
             ISettingsService settingsService,
             IDynamics365Client dynamics365Client,
-            IEventLogService eventLogService)
+            IEventLogService eventLogService,
+            IProgressiveCache progressiveCache)
         {
             this.settingsService = settingsService;
             this.dynamics365Client = dynamics365Client;
             this.eventLogService = eventLogService;
+            this.progressiveCache = progressiveCache;
         }
 
 
@@ -113,13 +115,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<JObject> MapPartialEntity(string entityName, string mapping, string dynamicsId, BaseInfo sourceObject)
+        public JObject MapPartialEntity(string entityName, string mapping, string dynamicsId, BaseInfo sourceObject)
         {
             var mappingDefinition = JObject.Parse(mapping);
             var fullEntity = MapEntity(entityName, mapping, sourceObject);
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entityName, dynamicsId);
-            var response = await dynamics365Client.SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
+            var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
             if (!response.IsSuccessStatusCode)
             {
                 eventLogService.LogError(nameof(DefaultDynamics365EntityMapper), nameof(MapPartialEntity), $"Error while retrieving existing Dynamics 365 Entity: {responseContent}");
@@ -168,7 +170,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             entity.Add("isregularactivity", true);
-            entity.Add("regardingobjectid_contact@odata.bind", $"/contacts({dynamicsId})");
+            entity.Add($"regardingobjectid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({dynamicsId})");
 
             if (!String.IsNullOrEmpty(DefaultOwner))
             {
@@ -197,17 +199,17 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             var parties = new JArray();
             if (!String.IsNullOrEmpty(appointmentModel.RequiredAttendee))
             {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.RequiredAttendee), new JProperty("partyid_systemuser@odata.bind", appointmentModel.RequiredAttendee)));
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.RequiredAttendee), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", appointmentModel.RequiredAttendee)));
             }
 
             if (!String.IsNullOrEmpty(appointmentModel.OptionalAttendee))
             {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.OptionalAttendee), new JProperty("partyid_systemuser@odata.bind", appointmentModel.OptionalAttendee)));
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.OptionalAttendee), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", appointmentModel.OptionalAttendee)));
             }
 
-            if (!String.IsNullOrEmpty(DefaultOwner) && DefaultOwner.StartsWith("/systemuser"))
+            if (!String.IsNullOrEmpty(DefaultOwner) && DefaultOwner.StartsWith($"/{Dynamics365Constants.ENTITY_USER}"))
             {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Organizer), new JProperty("partyid_systemuser@odata.bind", DefaultOwner)));
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Organizer), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", DefaultOwner)));
             }
 
             if (parties.Count > 0)
@@ -291,11 +293,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 phoneCallModel.To = dynamicsId;
             }
 
-            parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty("partyid_contact@odata.bind", $"/contacts({phoneCallModel.To})")));
+            parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({phoneCallModel.To})")));
 
             if (!String.IsNullOrEmpty(phoneCallModel.From))
             {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty("partyid_contact@odata.bind", $"/systemusers({phoneCallModel.From})")));
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", $"/{Dynamics365Constants.ENTITY_USER}s({phoneCallModel.From})")));
 
             }
 
@@ -319,17 +321,17 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             {
                 if (emailModel.SentToUser)
                 {
-                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty("partyid_systemuser@odata.bind", $"/systemusers({emailModel.To})")));
+                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", $"/{Dynamics365Constants.ENTITY_USER}s({emailModel.To})")));
                 }
                 else
                 {
-                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty("partyid_contact@odata.bind", $"/contacts({emailModel.To})")));
+                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({emailModel.To})")));
                 }
             }
 
             if (!String.IsNullOrEmpty(emailModel.From))
             {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty("partyid_systemuser@odata.bind", $"/systemusers({emailModel.From})")));
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", $"/{Dynamics365Constants.ENTITY_USER}s({emailModel.From})")));
 
             }
 

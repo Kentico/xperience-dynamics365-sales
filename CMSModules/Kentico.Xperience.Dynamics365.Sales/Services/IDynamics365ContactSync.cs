@@ -24,7 +24,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <param name="data">An object containing the Dynamics 365 fields and the values
         /// from the Xperience contact.</param>
         /// <returns>The response from the Web API.</returns>
-        Task<HttpResponseMessage> CreateContact(ContactInfo contact, JObject data);
+        HttpResponseMessage CreateContact(ContactInfo contact, JObject data);
 
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// </summary>
         /// <param name="contacts">The contacts to be upserted.</param>
         /// <returns>The results of the synchronization process.</returns>
-        Task<SynchronizationResult> SynchronizeContacts(IEnumerable<ContactInfo> contacts);
+        SynchronizationResult SynchronizeContacts(IEnumerable<ContactInfo> contacts);
 
 
         /// <summary>
@@ -60,6 +60,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <param name="data">An object containing the Dynamics 365 fields and the values
         /// from the Xperience contact.</param>
         /// <returns>The response from the Web API.</returns>
-        Task<HttpResponseMessage> UpdateContact(string dynamicsId, JObject data);
+        HttpResponseMessage UpdateContact(string dynamicsId, JObject data);
     }
 }

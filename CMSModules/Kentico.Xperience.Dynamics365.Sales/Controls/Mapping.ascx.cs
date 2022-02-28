@@ -88,7 +88,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         {
             try
             {
-                var entityAttributes = Service.Resolve<IDynamics365Client>().GetEntityAttributes(Dynamics365Constants.ENTITY_CONTACT).ConfigureAwait(false).GetAwaiter().GetResult();
+                var entityAttributes = Service.Resolve<IDynamics365Client>().GetEntityAttributes(Dynamics365Constants.ENTITY_CONTACT);
                 if (entityAttributes == null)
                 {
                     return Enumerable.Empty<Dynamics365EntityAttributeModel>();

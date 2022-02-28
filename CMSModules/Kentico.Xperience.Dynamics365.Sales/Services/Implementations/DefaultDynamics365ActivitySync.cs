@@ -15,7 +15,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 [assembly: RegisterImplementation(typeof(IDynamics365ActivitySync), typeof(DefaultDynamics365ActivitySync), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -50,36 +49,38 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public async Task<HttpResponseMessage> CreateActivity(JObject data, string entityName)
+        public HttpResponseMessage CreateActivity(JObject data, string entityName)
         {
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, entityName);
 
-            return await dynamics365Client.SendRequest(endpoint, HttpMethod.Post, data).ConfigureAwait(false);
+            return dynamics365Client.SendRequest(endpoint, HttpMethod.Post, data);
         }
 
 
-        public async Task<IEnumerable<Dynamics365EntityModel>> GetAllActivities()
+        public IEnumerable<Dynamics365EntityModel> GetAllActivities()
         {
-            var response = await dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(GetAllActivities), $"Error while retrieving Dynamics 365 activities: {responseContent}");
-                return Enumerable.Empty<Dynamics365EntityModel>();
-            }
+            return progressiveCache.Load(cacheSettings => {
+                var response = dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get);
+                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                {
+                    eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(GetAllActivities), $"Error while retrieving Dynamics 365 activities: {responseContent}");
+                    return Enumerable.Empty<Dynamics365EntityModel>();
+                }
 
-            var jObject = JObject.Parse(responseContent);
+                var jObject = JObject.Parse(responseContent);
 
-            return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
+                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
+            }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365ActivitySync)}|{nameof(GetAllActivities)}"));
         }
 
 
-        public async Task<SynchronizationResult> SynchronizeActivities(string dynamicsId, IEnumerable<ActivityInfo> activities)
+        public SynchronizationResult SynchronizeActivities(string dynamicsId, IEnumerable<ActivityInfo> activities)
         {
             var synchronizedActivities = 0;
             var unsyncedActivities = new List<string>();
             var synchronizationErrors = new List<string>();
-            var dynamicsActivityEntities = await GetAllActivities().ConfigureAwait(false);
+            var dynamicsActivityEntities = GetAllActivities();
             if (dynamicsActivityEntities.Count() == 0)
             {
                 return new SynchronizationResult
@@ -103,18 +104,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 }
 
                 var entity = dynamics365EntityMapper.MapActivity(entityToCreate, dynamicsId, activity);
-                var response = await CreateActivity(entity, entityToCreate).ConfigureAwait(false);
+                var response = CreateActivity(entity, entityToCreate);
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    await MarkActivityComplete(entityToCreate, responseContent).ConfigureAwait(false);
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    MarkActivityComplete(entityToCreate, responseContent);
 
                     synchronizedActivities++;
                 }
                 else
                 {
                     unsyncedActivities.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
-                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                     if (!synchronizationErrors.Contains(responseContent))
                     {
                         synchronizationErrors.Add(responseContent);
@@ -138,7 +139,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        private async Task MarkActivityComplete(string entity, string responseContent)
+        private void MarkActivityComplete(string entity, string responseContent)
         {
             var responseData = JObject.Parse(responseContent);
             var newId = responseData.Value<string>("activityid");
@@ -148,7 +149,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             var stateEndpoint = String.Format(Dynamics365Constants.ENDPOINT_STATECODES, entity);
-            var entityStates = await dynamics365Client.GetEntity(stateEndpoint).ConfigureAwait(false);
+            var entityStates = dynamics365Client.GetEntity(stateEndpoint);
             if (entityStates == null)
             {
                 return;
@@ -165,7 +166,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             patchData.Add("statuscode", completedState.DefaultStatus);
             
             var patchEndpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entity, newId);
-            await dynamics365Client.SendRequest(patchEndpoint, new HttpMethod("PATCH"), patchData).ConfigureAwait(false);
+            dynamics365Client.SendRequest(patchEndpoint, new HttpMethod("PATCH"), patchData);
         }
     }
 }

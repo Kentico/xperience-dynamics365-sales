@@ -43,7 +43,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             };
 
             var entity = Service.Resolve<IDynamics365EntityMapper>().MapActivity(Dynamics365Constants.ACTIVITY_APPOINTMENT, dynamicsId, appointmentModel);
-            var response = Service.Resolve<IDynamics365ActivitySync>().CreateActivity(entity, Dynamics365Constants.ACTIVITY_APPOINTMENT).ConfigureAwait(false).GetAwaiter().GetResult();
+            var response = Service.Resolve<IDynamics365ActivitySync>().CreateActivity(entity, Dynamics365Constants.ACTIVITY_APPOINTMENT);
             if (!response.IsSuccessStatusCode)
             {
                 var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();

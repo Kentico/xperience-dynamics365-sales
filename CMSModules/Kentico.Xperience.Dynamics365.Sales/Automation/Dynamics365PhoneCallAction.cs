@@ -103,7 +103,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             }
 
             // Find Dynamics user with same email address
-            var systemUsers = dynamics365Client.GetSystemUsers().ConfigureAwait(false).GetAwaiter().GetResult();
+            var systemUsers = dynamics365Client.GetSystemUsers();
             var matchingUser = systemUsers.FirstOrDefault(user => user.InternalEmailAddress.Equals(userEmail, StringComparison.OrdinalIgnoreCase));
             if (matchingUser == null)
             {

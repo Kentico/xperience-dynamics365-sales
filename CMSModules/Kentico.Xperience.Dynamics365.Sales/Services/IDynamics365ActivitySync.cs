@@ -7,7 +7,6 @@ using Newtonsoft.Json.Linq;
 
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
@@ -23,13 +22,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <param name="data">An object containing the Dynamics 365 fields and the values
         /// from the Xperience activity.</param>
         /// <returns>The response from the Web API.</returns>
-        Task<HttpResponseMessage> CreateActivity(JObject data, string entityName);
+        HttpResponseMessage CreateActivity(JObject data, string entityName);
 
 
         /// <summary>
         /// Gets all Entities in Dynamics 365 which are marked as activities, or an empty enumerable.
         /// </summary>
-        Task<IEnumerable<Dynamics365EntityModel>> GetAllActivities();
+        IEnumerable<Dynamics365EntityModel> GetAllActivities();
 
 
         /// <summary>
@@ -39,7 +38,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <param name="dynamicsId">The internal Dynamics ID that the activities will be linked to.</param>
         /// <param name="activities">The activities to create.</param>
         /// <returns></returns>
-        Task<SynchronizationResult> SynchronizeActivities(string dynamicsId, IEnumerable<ActivityInfo> activities);
+        SynchronizationResult SynchronizeActivities(string dynamicsId, IEnumerable<ActivityInfo> activities);
 
 
         /// <summary>

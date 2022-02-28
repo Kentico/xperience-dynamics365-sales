@@ -18,12 +18,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
     {
         public override void Execute()
         {
-            var eventLogService = Service.Resolve<IEventLogService>();
             var mappingDefinition = Service.Resolve<ISettingsService>()[Dynamics365Constants.SETTING_FIELDMAPPING];
             if (String.IsNullOrEmpty(mappingDefinition))
             {
-                eventLogService.LogError(nameof(Dynamics365ImportContactAction), nameof(Execute), "Unable to load contact field mapping. Please check the settings.");
-                return;
+                throw new InvalidOperationException("Unable to load contact field mapping. Please check the settings.");
             }
 
             var contact = InfoObject as ContactInfo;
@@ -34,18 +32,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             if (String.IsNullOrEmpty(dynamicsId))
             {
                 var fullEntity = entityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, contact);
-                response = contactSyncService.CreateContact(contact, fullEntity).ConfigureAwait(false).GetAwaiter().GetResult();
+                response = contactSyncService.CreateContact(contact, fullEntity);
             }
             else
             {
-                var partialEntity = entityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact).ConfigureAwait(false).GetAwaiter().GetResult();
-                response = contactSyncService.UpdateContact(dynamicsId, partialEntity).ConfigureAwait(false).GetAwaiter().GetResult();
+                var partialEntity = entityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact);
+                response = contactSyncService.UpdateContact(dynamicsId, partialEntity);
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                eventLogService.LogError(nameof(Dynamics365ImportContactAction), nameof(Execute), $"Encountered an error while synchronizing contact '{contact.ContactDescriptiveName}': {responseContent}");
+                Service.Resolve<IEventLogService>().LogError(nameof(Dynamics365ImportContactAction), nameof(Execute), $"Encountered an error while synchronizing contact '{contact.ContactDescriptiveName}': {responseContent}");
             }
         }
     }

@@ -27,7 +27,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
             var contactsWithLink = contactSyncService.GetSynchronizedContacts().ToList();
             var contactsToSync = contactsWithLink.Union(contactsWithScore);
 
-            var result = contactSyncService.SynchronizeContacts(contactsToSync).ConfigureAwait(false).GetAwaiter().GetResult();
+            var result = contactSyncService.SynchronizeContacts(contactsToSync);
 
             if (result.HasErrors)
             {

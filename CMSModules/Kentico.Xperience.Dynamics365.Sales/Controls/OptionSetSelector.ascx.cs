@@ -54,7 +54,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
             }
 
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_OPTIONSET, EntityName, AttributeName);
-            var entity = Service.Resolve<IDynamics365Client>().GetEntity(endpoint).ConfigureAwait(false).GetAwaiter().GetResult();
+            var entity = Service.Resolve<IDynamics365Client>().GetEntity(endpoint);
             if (entity == null)
             {
                 drpOptions.Enabled = false;

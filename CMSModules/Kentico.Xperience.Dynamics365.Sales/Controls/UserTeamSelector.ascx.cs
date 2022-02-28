@@ -66,12 +66,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
 
         private IEnumerable<ListItem> GetSystemUsers()
         {
-            var userArray = dynamics365Client.GetSystemUsers().ConfigureAwait(false).GetAwaiter().GetResult();
+            var userArray = dynamics365Client.GetSystemUsers();
 
             return userArray.Where(user => user.AccessMode < ((int)AccessModeEnum.NonInteractive)).Select(user =>
             {
                 var text = $"{user.FullName} (user)";
-                var value = $"/systemusers({user.SystemUserId})";
+                var value = $"/{Dynamics365Constants.ENTITY_USER}s({user.SystemUserId})";
                 return new ListItem(text, value);
             });
         }
@@ -79,18 +79,20 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
 
         private IEnumerable<ListItem> GetTeams()
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, "team") + "?$select=teamid,name";
-            var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get).ConfigureAwait(false).GetAwaiter().GetResult();
-            var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            var jObject = JObject.Parse(sourceJson);
-            var teamArray = jObject.Value<JArray>("value");
+            return Service.Resolve<IProgressiveCache>().Load(cacheSettings => {
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_TEAM) + "?$select=teamid,name";
+                var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
+                var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                var jObject = JObject.Parse(sourceJson);
+                var teamArray = jObject.Value<JArray>("value");
 
-            return teamArray.Select(user =>
-            {
-                var text = $"{user.Value<string>("name")} (team)";
-                var value = $"/teams({user.Value<string>("teamid")})";
-                return new ListItem(text, value);
-            });
+                return teamArray.Select(team =>
+                {
+                    var text = $"{team.Value<string>("name")} (team)";
+                    var value = $"/{Dynamics365Constants.ENTITY_TEAM}s({team.Value<string>("teamid")})";
+                    return new ListItem(text, value);
+                });
+            }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(UserTeamSelector)}|{nameof(GetTeams)}"));
         }
     }
 }

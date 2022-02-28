@@ -6,7 +6,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
@@ -20,7 +19,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// Web API operations.
         /// </summary>
         /// <returns>An access token, or an emtpy string if the required settings are not populated.</returns>
-        Task<string> GetAccessToken();
+        string GetAccessToken();
 
 
         /// <summary>
@@ -28,7 +27,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// </summary>
         /// <param name="entityName">The <b>LogicalName</b> of the Dynamics 365 Entity to retreive.</param>
         /// <returns>The Entity's attributes, or an empty list if there was an error retrieving it.</returns>
-        Task<IEnumerable<Dynamics365EntityAttributeModel>> GetEntityAttributes(string entityName);
+        IEnumerable<Dynamics365EntityAttributeModel> GetEntityAttributes(string entityName);
 
 
         /// <summary>
@@ -37,13 +36,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// </summary>
         /// <param name="entityName">The fully-resolved Dynamics 365 Web API endpoint.</param>
         /// <returns>The Entity, or null if there were errors.</returns>
-        Task<Dynamics365EntityModel> GetEntity(string endpoint);
+        Dynamics365EntityModel GetEntity(string endpoint);
 
 
         /// <summary>
         /// Gets the Dynamics 365 systemuser objects, or an empty enumerable.
         /// </summary>
-        Task<IEnumerable<Dynamics365SystemUser>> GetSystemUsers();
+        IEnumerable<Dynamics365SystemUser> GetSystemUsers();
 
 
         /// <summary>
@@ -56,6 +55,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="NotImplementedException"></exception>
-        Task<HttpResponseMessage> SendRequest(string endpoint, HttpMethod method, JObject data = null);
+        HttpResponseMessage SendRequest(string endpoint, HttpMethod method, JObject data = null);
     }
 }

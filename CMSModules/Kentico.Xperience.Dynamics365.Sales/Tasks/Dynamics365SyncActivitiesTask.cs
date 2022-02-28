@@ -38,7 +38,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
             {
                 var dynamicsId = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
                 var activitiesSinceLastRun = GetActivities(contact, task.TaskLastRunTime);
-                var result = Service.Resolve<IDynamics365ActivitySync>().SynchronizeActivities(dynamicsId, activitiesSinceLastRun).ConfigureAwait(false).GetAwaiter().GetResult();
+                var result = Service.Resolve<IDynamics365ActivitySync>().SynchronizeActivities(dynamicsId, activitiesSinceLastRun);
 
                 totalSynchronized += result.SynchronizedObjectCount;
                 if (result.HasErrors)

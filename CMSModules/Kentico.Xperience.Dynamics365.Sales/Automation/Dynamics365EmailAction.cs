@@ -80,7 +80,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
 
         private string GetUserWithEmail(string email)
         {
-            var systemUsers = Service.Resolve<IDynamics365Client>().GetSystemUsers().ConfigureAwait(false).GetAwaiter().GetResult();
+            var systemUsers = Service.Resolve<IDynamics365Client>().GetSystemUsers();
             var matchingUser = systemUsers.FirstOrDefault(user => user.InternalEmailAddress != null && user.InternalEmailAddress.Equals(email, StringComparison.OrdinalIgnoreCase));
             if (matchingUser == null)
             {

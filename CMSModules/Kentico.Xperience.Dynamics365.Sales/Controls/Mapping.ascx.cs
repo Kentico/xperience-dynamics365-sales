@@ -3,6 +3,7 @@ using CMS.Core;
 using CMS.FormEngine.Web.UI;
 using CMS.Helpers;
 
+using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
@@ -87,7 +88,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         {
             try
             {
-                var entityAttributes = Service.Resolve<IDynamics365Client>().GetEntityAttributes("contact").ConfigureAwait(false).GetAwaiter().GetResult();
+                var entityAttributes = Service.Resolve<IDynamics365Client>().GetEntityAttributes(Dynamics365Constants.ENTITY_CONTACT).ConfigureAwait(false).GetAwaiter().GetResult();
                 if (entityAttributes == null)
                 {
                     return Enumerable.Empty<Dynamics365EntityAttributeModel>();

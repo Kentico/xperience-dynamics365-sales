@@ -33,12 +33,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             HttpResponseMessage response = null;
             if (String.IsNullOrEmpty(dynamicsId))
             {
-                var fullEntity = entityMapper.MapEntity("contact", mappingDefinition, contact);
+                var fullEntity = entityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, contact);
                 response = contactSyncService.CreateContact(contact, fullEntity).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             else
             {
-                var partialEntity = entityMapper.MapPartialEntity("contact", mappingDefinition, dynamicsId, contact).ConfigureAwait(false).GetAwaiter().GetResult();
+                var partialEntity = entityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact).ConfigureAwait(false).GetAwaiter().GetResult();
                 response = contactSyncService.UpdateContact(dynamicsId, partialEntity).ConfigureAwait(false).GetAwaiter().GetResult();
             }
 

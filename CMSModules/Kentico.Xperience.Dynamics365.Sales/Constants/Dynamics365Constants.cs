@@ -30,6 +30,12 @@
 
 
         /// <summary>
+        /// The Entity name of Dynamics 365 contacts.
+        /// </summary>
+        public const string ENTITY_CONTACT = "contact";
+
+
+        /// <summary>
         /// The path appended to the Dynamics tenant indicating a Web API request.
         /// </summary>
         public const string ENDPOINT_BASE = "/api/data/v8.2";

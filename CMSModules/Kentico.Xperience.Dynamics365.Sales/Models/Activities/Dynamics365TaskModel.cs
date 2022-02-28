@@ -1,5 +1,7 @@
 ﻿using Kentico.Xperience.Dynamics365.Sales.Services;
 
+using System;
+
 namespace Kentico.Xperience.Dynamics365.Sales.Models.Activities
 {
     /// <summary>
@@ -28,9 +30,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Models.Activities
 
 
         /// <summary>
-        /// The amount of hours from task creation that it is due.
+        /// The time the task is due.
         /// </summary>
-        public int DueInHours
+        public DateTime DueDate
         {
             get;
             set;

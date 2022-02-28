@@ -56,5 +56,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Models.Activities
             get;
             set;
         }
+
+
+        /// <summary>
+        /// The phone call's duration in minutes.
+        /// </summary>
+        public int Duration
+        {
+            get;
+            set;
+        }
     }
 }

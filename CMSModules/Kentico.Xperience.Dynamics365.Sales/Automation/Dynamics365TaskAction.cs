@@ -34,7 +34,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             {
                 Subject = subject,
                 Description = GetResolvedParameter("Description", string.Empty),
-                DueInHours = GetResolvedParameter("DueHours", 0),
+                DueDate = GetResolvedParameter("DueDate", DateTime.MinValue),
                 DurationMinutes = GetResolvedParameter("DurationMinutes", 0),
                 Priority = GetResolvedParameter("Priority", -1),
             };

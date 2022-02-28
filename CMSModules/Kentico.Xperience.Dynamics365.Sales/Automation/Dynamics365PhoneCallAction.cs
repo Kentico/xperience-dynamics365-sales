@@ -38,6 +38,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             var contact = InfoObject as ContactInfo;
             var callTo = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
             var phoneNumber = String.IsNullOrEmpty(contact.ContactBusinessPhone) ? contact.ContactMobilePhone : contact.ContactBusinessPhone;
+            var defaultDuration = GetResolvedParameter("DefaultDuration", 10);
+
             var previousStepHistory = AutomationHistoryInfo.Provider.Get()
                 .WhereEquals(nameof(AutomationHistoryInfo.HistoryStateID), StateObject.StateID)
                 .WhereEquals(nameof(AutomationHistoryInfo.HistoryTargetStepID), ActionStep.StepID)
@@ -50,7 +52,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
                 From = GetApprover(previousStepHistory),
                 Subject = subject,
                 PhoneNumber = phoneNumber,
-                Description = GetComment(previousStepHistory)
+                Description = GetComment(previousStepHistory),
+                Duration = defaultDuration
             };
 
             var activity = new ActivityInfo

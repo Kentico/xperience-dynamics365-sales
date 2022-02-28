@@ -251,9 +251,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 entity.Add("description", taskModel.Description);
             }
 
-            if (taskModel.DueInHours > 0)
+            if (taskModel.DueDate != DateTime.MinValue)
             {
-                entity.Add("scheduledend", DateTime.Now.AddHours(taskModel.DueInHours));
+                entity.Add("scheduledend", taskModel.DueDate);
             }
 
             if (taskModel.DurationMinutes > 0)
@@ -279,6 +279,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             entity.Add("subject", phoneCallModel.Subject);
             entity.Add("phonenumber", phoneCallModel.PhoneNumber);
             entity.Add("description", phoneCallModel.Description);
+
+            var callStarted = (relatedData as ActivityInfo).ActivityCreated;
+            entity.Add("actualend", callStarted.AddMinutes(phoneCallModel.Duration));
+            entity.Add("scheduledend", callStarted.AddMinutes(phoneCallModel.Duration));
+            entity.Add("actualdurationminutes", phoneCallModel.Duration);
 
             var parties = new JArray();
             if (String.IsNullOrEmpty(phoneCallModel.To))

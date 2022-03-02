@@ -6,13 +6,16 @@ using CMS.Helpers;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models;
+using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 
 [assembly: RegisterImplementation(typeof(IDynamics365ContactSync), typeof(DefaultDynamics365ContactSync), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
@@ -119,42 +122,44 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 };
             }
 
+            var mapping = JsonConvert.DeserializeObject<MappingModel>(mappingDefinition);
             var synchronizedContacts = 0;
             var unsyncedContacts = new List<string>();
             var synchronizationErrors = new List<string>();
             foreach (var contact in contacts)
             {
-                // Send request
+                bool doCreate;
                 var dynamicsId = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
+                var entity = GetEntityForContact(dynamicsId, contact, mapping, out doCreate);
                 HttpResponseMessage response;
-                if(String.IsNullOrEmpty(dynamicsId))
+
+                // Send request
+                if (doCreate)
                 {
-                    var fullEntity = dynamics365EntityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, contact);
-                    if (fullEntity.Count == 0)
+                    if (entity.Count == 0)
                     {
                         unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
                         continue;
                     }
 
-                    response = CreateContact(contact, fullEntity);
+                    response = CreateContact(contact, entity);
                 }
                 else
                 {
-                    var partialEntity = dynamics365EntityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact);
-                    if (partialEntity.Count == 0)
+                    if (entity.Count == 0)
                     {
                         // It isn't an error to have zero properties (contact is up-to-date)
                         continue;
                     }
 
-                    if (partialEntity == null)
+                    if (entity == null)
                     {
                         unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
                         synchronizationErrors.Add("Unable to map partial object.");
                         continue;
                     }
 
-                    response = UpdateContact(dynamicsId, partialEntity);
+                    response = UpdateContact(dynamicsId, entity);
                 }
 
                 // Handle response
@@ -204,6 +209,44 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 var message = $"The following errors occurred during synchronization of contact '{contact.ContactDescriptiveName}' activities:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"
                         + $"<br/><br/>As a result, the following activities were not synchronized:<br/><br/>{String.Join("<br/>", result.UnsynchronizedObjectIdentifiers)}";
                 eventLogService.LogError(nameof(DefaultDynamics365ContactSync), nameof(SynchronizeActivities), message);
+            }
+        }
+
+
+        /// <summary>
+        /// Gets an Entity for upserting to Dynamics 365. If the <paramref name="contact"/> has already synchronized,
+        /// a partial Entity is created by checking for local values that differ from Xperience 365's values. If the contact
+        /// was deleted in Dynamics 365, a full Entity is generated for creation as indicated by <paramref name="doCreate"/>.
+        /// </summary>
+        /// <param name="dynamicsId">The ID of the linked Dynamics 365 contact, or an empty string if the contact wasn't
+        /// synchronized.</param>
+        /// <param name="contact">The contact to generate the Entity for.</param>
+        /// <param name="mapping">The mapping definition.</param>
+        /// <param name="doCreate">Returns true if the contact should be created instead of updated.</param>
+        /// <returns></returns>
+        private JObject GetEntityForContact(string dynamicsId, ContactInfo contact, MappingModel mapping, out bool doCreate)
+        {
+            if (String.IsNullOrEmpty(dynamicsId))
+            {
+                doCreate = true;
+                return dynamics365EntityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, contact);
+            }
+            else
+            {
+                // Ensure contact exists in Dynamics
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, Dynamics365Constants.ENTITY_CONTACT, dynamicsId);
+                var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // Contact was deleted in Dynamics, perform full create and re-link
+                    doCreate = true;
+                    return dynamics365EntityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, contact);
+                }
+                else
+                {
+                    doCreate = false;
+                    return dynamics365EntityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, dynamicsId, contact);
+                }
             }
         }
     }

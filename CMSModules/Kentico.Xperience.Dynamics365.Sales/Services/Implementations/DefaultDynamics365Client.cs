@@ -101,6 +101,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public IEnumerable<Dynamics365EntityAttributeModel> GetEntityAttributes(string entityName)
         {
             return progressiveCache.Load(cacheSettings => {
+                cacheSettings.CacheDependency = GetDefaultCacheDependency();
+
                 var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
                 var response = SendRequest(endpoint, HttpMethod.Get);
                 if (!response.IsSuccessStatusCode)
@@ -109,7 +111,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
                     cacheSettings.Cached = false;
 
-                    return null;
+                    return Enumerable.Empty<Dynamics365EntityAttributeModel>();
                 }
 
                 var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
@@ -128,6 +130,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public Dynamics365EntityModel GetEntity(string endpoint)
         {
             return progressiveCache.Load(cacheSettings => {
+                cacheSettings.CacheDependency = GetDefaultCacheDependency();
+
                 var response = SendRequest(endpoint, HttpMethod.Get);
                 var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 if (response.IsSuccessStatusCode)
@@ -146,6 +150,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public IEnumerable<Dynamics365SystemUser> GetSystemUsers()
         {
             return progressiveCache.Load(cacheSettings => {
+                cacheSettings.CacheDependency = GetDefaultCacheDependency();
+
                 var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_USER) + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
                 var response = SendRequest(endpoint, HttpMethod.Get);
                 var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
@@ -215,6 +221,21 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     throw new NotImplementedException();
                 }
             }
+        }
+
+
+        private CMSCacheDependency GetDefaultCacheDependency()
+        {
+            return new CMSCacheDependency()
+            {
+                CacheKeys = new string[]
+                {
+                    $"cms.settingskey|{Dynamics365Constants.SETTING_CLIENTID.ToLower()}",
+                    $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}",
+                    $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}",
+                    $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}"
+                }
+            };
         }
     }
 }

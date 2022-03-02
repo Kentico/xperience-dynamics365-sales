@@ -3,7 +3,10 @@ using CMS.ContactManagement;
 using CMS.Core;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;
+using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 using Kentico.Xperience.Dynamics365.Sales.Services;
+
+using Newtonsoft.Json;
 
 using System;
 using System.Net.Http;
@@ -24,6 +27,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
                 throw new InvalidOperationException("Unable to load contact field mapping. Please check the settings.");
             }
 
+            var mapping = JsonConvert.DeserializeObject<MappingModel>(mappingDefinition);
             var contact = InfoObject as ContactInfo;
             var dynamicsId = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
             var contactSyncService = Service.Resolve<IDynamics365ContactSync>();
@@ -31,12 +35,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Automation
             HttpResponseMessage response = null;
             if (String.IsNullOrEmpty(dynamicsId))
             {
-                var fullEntity = entityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, contact);
+                var fullEntity = entityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, contact);
                 response = contactSyncService.CreateContact(contact, fullEntity);
             }
             else
             {
-                var partialEntity = entityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mappingDefinition, dynamicsId, contact);
+                var partialEntity = entityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, dynamicsId, contact);
                 response = contactSyncService.UpdateContact(dynamicsId, partialEntity);
             }
 

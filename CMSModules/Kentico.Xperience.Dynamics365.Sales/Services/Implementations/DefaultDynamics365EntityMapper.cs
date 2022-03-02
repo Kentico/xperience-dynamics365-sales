@@ -6,6 +6,7 @@ using CMS.Helpers;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models.Activities;
+using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using Newtonsoft.Json;
@@ -87,26 +88,18 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public JObject MapEntity(string entityName, string mapping, BaseInfo sourceObject)
+        public JObject MapEntity(string entityName, MappingModel mapping, BaseInfo sourceObject)
         {
-            var entity = JObject.Parse(mapping);
-            var propertiesToRemove = new List<string>();
-            foreach (var entityProperty in entity.Properties())
+            var entity = new JObject();
+            foreach (var item in mapping.Items)
             {
-                var baseInfoPropertyName = entityProperty.Value.Value<string>();
-                var baseInfoValue = sourceObject.GetValue(baseInfoPropertyName);
+                var baseInfoValue = GetXperienceValue(item, sourceObject);
                 if (baseInfoValue == null)
                 {
-                    propertiesToRemove.Add(entityProperty.Name);
                     continue;
                 }
 
-                entityProperty.Value = JToken.FromObject(baseInfoValue);
-            }
-
-            foreach (var propertyName in propertiesToRemove)
-            {
-                entity.Remove(propertyName);
+                entity.Add(item.Dynamics365Field, JToken.FromObject(baseInfoValue));
             }
 
             DecodeValues(entity);
@@ -115,10 +108,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public JObject MapPartialEntity(string entityName, string mapping, string dynamicsId, BaseInfo sourceObject)
+        public JObject MapPartialEntity(string entityName, MappingModel mapping, string dynamicsId, BaseInfo sourceObject)
         {
-            var mappingDefinition = JObject.Parse(mapping);
             var fullEntity = MapEntity(entityName, mapping, sourceObject);
+
+            // Get contact info from Dynamics
             var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entityName, dynamicsId);
             var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
             var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
@@ -129,21 +123,15 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             var dynamicsObject = JObject.Parse(responseContent);
-            var propertiesToRemove = new List<string>();
-            foreach(var property in fullEntity.Properties())
+            foreach(var item in mapping.Items)
             {
-                var xperienceColumnName = mappingDefinition.Value<string>(property.Name);
-                var xperienceValue = sourceObject.GetStringValue(xperienceColumnName, String.Empty);
-                if (String.IsNullOrEmpty(xperienceValue) || xperienceValue == dynamicsObject.Value<string>(property.Name))
+                var baseInfoValue = GetXperienceValue(item, sourceObject);
+                var dynamicsValue = dynamicsObject.Value<string>(item.Dynamics365Field);
+                if (baseInfoValue == null || ValidationHelper.GetString(baseInfoValue, String.Empty) == dynamicsValue)
                 {
                     // Column doesn't exist in Xperience, or the value matches Dynamics
-                    propertiesToRemove.Add(property.Name);
+                    fullEntity.Remove(item.Dynamics365Field);
                 }
-            }
-
-            foreach (var propertyName in propertiesToRemove)
-            {
-                fullEntity.Remove(propertyName);
             }
 
             return fullEntity;
@@ -159,6 +147,41 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     property.Value = JToken.FromObject(HTMLHelper.HTMLDecode(property.Value.Value<string>()));
                 }
             }
+        }
+
+
+        private object GetXperienceValue(MappingItem mapping, BaseInfo baseInfo)
+        {
+            var baseInfoValue = baseInfo.GetValue(mapping.XperienceFieldName);
+
+            if (mapping.DynamicsAttributeType == EntityAttributeType.DATETIME)
+            {
+                // Convert DateTime to either Date and Time or only Date
+                return GetValidDateTime(baseInfoValue, mapping);
+            }
+
+            return baseInfoValue;
+        }
+
+
+        private string GetValidDateTime(object xperienceValue, MappingItem mapping)
+        {
+            var retVal = ValidationHelper.GetDateTime(xperienceValue, DateTime.MinValue);
+            if (retVal == DateTime.MinValue)
+            {
+                return null;
+            }
+
+            if (mapping.DynamicsAttributeFormat == "DateOnly")
+            {
+                return retVal.ToString("yyyy-MM-dd");
+            }
+            else if (mapping.DynamicsAttributeFormat == "DateAndTime")
+            {
+                return retVal.ToString();
+            }
+
+            return null;
         }
 
 

@@ -1,9 +1,11 @@
-﻿using CMS.Core;
+﻿using CMS.ContactManagement;
+using CMS.Core;
 using CMS.Scheduler;
 
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Tasks
@@ -24,11 +26,16 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
             // Merge contacts with score and contacts with linked ID, as they may have been synced by automation step without
             // meeting score requirements
             var contactsWithScore = contactSyncService.GetContactsWithScore().ToList();
-            var contactsWithLink = contactSyncService.GetSynchronizedContacts().ToList();
-            var contactsToSync = contactsWithLink.Union(contactsWithScore);
+            var contactsToSync = contactSyncService.GetSynchronizedContacts().ToList();
+            foreach (var contact in contactsWithScore)
+            {
+                if (!contactsToSync.Any(c => c.ContactGUID == contact.ContactGUID))
+                {
+                    contactsToSync.Add(contact);
+                }
+            }
 
             var result = contactSyncService.SynchronizeContacts(contactsToSync);
-
             if (result.HasErrors)
             {
                 var message = $"The following errors occurred during synchronization:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"

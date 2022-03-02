@@ -74,7 +74,7 @@
         /// <summary>
         /// The Web API endpoint for retrieving the attributes of an Entity.
         /// </summary>
-        public const string ENDPOINT_ENTITY_ATTRIBUTES = "/EntityDefinitions(LogicalName='{0}')/Attributes?$select=LogicalName,AttributeType,DisplayName,IsPrimaryId,RequiredLevel";
+        public const string ENDPOINT_ENTITY_ATTRIBUTES = "/EntityDefinitions(LogicalName='{0}')/Attributes";
 
 
         /// <summary>

@@ -1,4 +1,6 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
+﻿using Kentico.Xperience.Dynamics365.Sales.Constants;
+
+namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
     /// Describes the structure of an Entity attribute.
@@ -17,7 +19,7 @@
 
 
         /// <summary>
-        /// The data type of the attribute, which is one of <see cref="AttributeTypes"/>.
+        /// The data type of the attribute, which is one of <see cref="EntityAttributeType"/>.
         /// </summary>
         public string AttributeType
         {
@@ -30,6 +32,16 @@
         /// True if the attribute is a primary key.
         /// </summary>
         public bool IsPrimaryId
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
+        /// The format of the attribute type.
+        /// </summary>
+        public string Format
         {
             get;
             set;

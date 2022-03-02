@@ -60,6 +60,17 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public IEnumerable<Dynamics365EntityModel> GetAllActivities()
         {
             return progressiveCache.Load(cacheSettings => {
+                cacheSettings.CacheDependency = new CMSCacheDependency()
+                {
+                    CacheKeys = new string[]
+                    {
+                        $"cms.settingskey|{Dynamics365Constants.SETTING_CLIENTID.ToLower()}",
+                        $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}",
+                        $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}",
+                        $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}"
+                    }
+                };
+
                 var response = dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get);
                 var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 if (!response.IsSuccessStatusCode)

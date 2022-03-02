@@ -10,11 +10,17 @@ using System.Web.UI.WebControls;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Controls
 {
+    /// <summary>
+    /// A form control that displays a selection for an Entity attribute's acceptable values.
+    /// </summary>
     public partial class OptionSetSelector : FormEngineUserControl
     {
         private int mValue = -1;
 
 
+        /// <summary>
+        /// The Entity to retrieve the attribute from.
+        /// </summary>
         private string EntityName
         {
             get
@@ -24,6 +30,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         }
 
 
+        /// <summary>
+        /// The Entity attribute to retrieve options from.
+        /// </summary>
         private string AttributeName
         {
             get

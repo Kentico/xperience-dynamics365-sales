@@ -86,6 +86,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         }
 
 
+        /// <summary>
+        /// A list of the Entity's attributes that can be displayed in the mapping drop-down.
+        /// </summary>
         private IEnumerable<Dynamics365EntityAttributeModel> EntityAttributes
         {
             get
@@ -165,6 +168,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         }
 
 
+        /// <summary>
+        /// Creates a new <see cref="MappingModel"/> and restores a mapping definition from the database
+        /// (if it is not empty).
+        /// </summary>
+        /// <param name="mappingJson">The serialized mapping from the database, or an empty string.</param>
+        /// <returns>An initialized mapping with valid Xperience fields and their mapped Dynamics 365 fields.</returns>
         private MappingModel CreateInitializedMapping(string mappingJson)
         {
             // Create a new mapping every time, in case fields were added/removed from ContactInfo
@@ -199,6 +208,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         }
 
 
+        /// <summary>
+        /// Iterates through all <see cref="MappingItemEditor"/> controls in <see cref="MappingItemEditors"/> and
+        /// serializes the mapping into a string suitable for storing in the database.
+        /// </summary>
+        /// <returns></returns>
         private string GetSerializedValue()
         {
             var mapping = new MappingModel();

@@ -59,6 +59,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
         }
 
 
+        /// <summary>
+        /// Gets all the activities for the <paramref name="contact"/> which should be synchronized with
+        /// Dynamics 365.
+        /// </summary>
+        /// <param name="contact">The contact to load activities from.</param>
+        /// <param name="lastRun">The time the scheduled task last executed.</param>
         private IEnumerable<ActivityInfo> GetActivities(ContactInfo contact, DateTime lastRun)
         {
             var activityMinTime = lastRun;

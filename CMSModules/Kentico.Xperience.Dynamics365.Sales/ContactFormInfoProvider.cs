@@ -1,5 +1,4 @@
 ﻿using CMS.ContactManagement;
-using CMS.DataEngine;
 using CMS.FormEngine;
 
 using System.Collections.Generic;
@@ -26,9 +25,9 @@ namespace Kentico.Xperience.Dynamics365.Sales
 
 
         /// <summary>
-        /// Creates a new instance of the contact form info suitable for mapping, and returns it.
+        /// Gets a list of the form fields from the OM.Contact class that should be included
+        /// in the Dynamics 365 field mapping.
         /// </summary>
-        /// <returns>A new instance of the contact form info suitable for mapping.</returns>
         public IEnumerable<FormFieldInfo> GetContactFields()
         {
             FormInfo form = FormHelper.GetFormInfo(ContactInfo.TYPEINFO.ObjectClassName, true);

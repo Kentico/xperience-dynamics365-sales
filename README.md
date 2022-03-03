@@ -115,7 +115,7 @@ To log the __Email__ activity, place it after a __Send transactional email__ or 
 
 When the activity is logged, it will contain the information found in [`Dynamics365EmailModel`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Models/Activities/Dynamics365EmailModel.cs), such as the email's subject and body. If the email's "From" address matches a user in Dynamics 365, that user will be linked to the Dynamics 365 activity.
 
-> __Note__: If the "Log Dynamics 365 email" step is placed after a "Send marketing email" step, the body of the email will not be included in the Dynamics 365 activity.
+> __Note:__ If the "Log Dynamics 365 email" step is placed after a "Send marketing email" step, the body of the email will not be included in the Dynamics 365 activity.
 
 There are two other custom automation actions which do not log Xperience activities, but will create Dynamics 365 entities _when they execute_:
 
@@ -131,3 +131,39 @@ The task will be assigned to the user or team specified by the __Default owner__
 ![Appointment automation process](/Assets/appointmentprocess.png)
 
 The appointment can contain required and optional attendees that you choose from your Dynamics 365 users. The appointment will always include the contact that is currently in the automation process.
+
+## Synchronizing custom activities
+
+As described in [How the synchronization works](#activity-synchronization), Xperience activities are automatically synchronized if the __Code name__ matches an entity name in Dynamics 365. Or, you can synchronize activities whose names do _not_ match by implementing the `MapActivityType` method as described [here](#activity-synchronization).
+
+Either way, the activity data must be mapped to the Dynamics 365 entity by your developers as there is no way for the integration to know where the information should be stored. To map your custom activity to a Dynamics 365 entity, you can register your own implementation of [`IDynamics365EntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IDynamics365EntityMapper.cs):
+
+```cs
+[assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(CustomEntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.Default)]
+namespace MyCompany.Customizations.Dynamics365.Sales
+{
+    /// <summary>
+    /// A custom Entity mapper for Dynamics 365, to map our "mycustomactivity" activity. 
+    /// </summary>
+    public class CustomEntityMapper : IDynamics365EntityMapper
+    {
+```
+
+Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObect`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
+
+```cs
+public JObject MapActivity(string entityName, string dynamicsId, object relatedData)
+{
+   var entity = new JObject();
+   
+   if (entityName.Equals("mycustomactivity", StringComparison.OrdinalIgnoreCase))
+   {
+         var activity = relatedData as ActivityInfo;
+         entity.Add("performedonpage", activity.ActivityURL);
+   }
+
+   return entity;
+}
+```
+
+> __Note:__ When registering custom implementations of the integration's interfaces, make sure to include the original code found in [/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/).

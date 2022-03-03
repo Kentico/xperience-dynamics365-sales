@@ -142,6 +142,9 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
+        /// <summary>
+        /// Calls <see cref="HTMLHelper.HTMLDecode"/> on all string values in the <paramref name="entity"/>.
+        /// </summary>
         private void DecodeValues(JObject entity)
         {
             foreach(var property in entity.Properties())
@@ -154,6 +157,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
+        /// <summary>
+        /// Gets the value of the <see cref="MappingItem.XperienceFieldName"/> from the <paramref name="baseInfo"/>.
+        /// </summary>
+        /// <param name="mapping">The mapping containing the Xperience field name to retrieve the value of.</param>
+        /// <param name="baseInfo">The Xperience object to retrieve the value from.</param>
+        /// <returns>The Xperience object's field value.</returns>
         private object GetXperienceValue(MappingItem mapping, BaseInfo baseInfo)
         {
             var baseInfoValue = baseInfo.GetValue(mapping.XperienceFieldName);
@@ -168,6 +177,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
+        /// <summary>
+        /// Converts an Xperience object's value into the proper format for upserting into Dynamics 365.
+        /// </summary>
+        /// <param name="xperienceValue">The Xperience object's field value.</param>
+        /// <param name="mapping">The mapping that was used to retrieve the <paramref name="xperienceValue"/>.</param>
+        /// <returns>A valid Edm.Date value in string format.</returns>
         private string GetValidDateTime(object xperienceValue, MappingItem mapping)
         {
             var retVal = ValidationHelper.GetDateTime(xperienceValue, DateTime.MinValue);
@@ -189,6 +204,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
+        /// <summary>
+        /// Maps Entity properties which all activities should contain.
+        /// </summary>
+        /// <param name="dynamicsId">The internal Dynamics 365 contact ID associated with the activity.</param>
+        /// <param name="entity">The Entity to map.</param>
+        /// <param name="relatedData">An object containing the required data for the activity, such as <see cref="ActivityInfo"/>.</param>
         private void MapCommonActivityProperties(string dynamicsId, JObject entity, object relatedData)
         {
             if (relatedData is ActivityInfo)

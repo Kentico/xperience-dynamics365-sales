@@ -57,6 +57,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public string MapActivityType(string activityType)
         {
+            if (activityType.Equals(PredefinedActivityType.PAGE_VISIT, StringComparison.OrdinalIgnoreCase))
+            {
+                return "pageview";
+            }
+
             return activityType;
         }
 

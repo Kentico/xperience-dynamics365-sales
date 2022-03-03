@@ -62,23 +62,33 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
                 throw new InvalidOperationException("The required properties are not set for the form control.");
             }
 
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_OPTIONSET, EntityName, AttributeName);
-            var entity = Service.Resolve<IDynamics365Client>().GetEntity(endpoint);
-            if (entity == null)
+            try
             {
-                drpOptions.Enabled = false;
-                return;
-            }
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_OPTIONSET, EntityName, AttributeName);
+                var entity = Service.Resolve<IDynamics365Client>().GetEntity(endpoint);
+                if (entity == null)
+                {
+                    drpOptions.Enabled = false;
+                    return;
+                }
 
-            drpOptions.Items.Add(new ListItem("(not set)", String.Empty));
-            foreach(var option in entity.OptionSet.Options)
-            {
-                drpOptions.Items.Add(new ListItem(option.Label.UserLocalizedLabel.Label, option.Value.ToString()));
-            }
+                drpOptions.Items.Add(new ListItem("(not set)", String.Empty));
+                foreach (var option in entity.OptionSet.Options)
+                {
+                    drpOptions.Items.Add(new ListItem(option.Label.UserLocalizedLabel.Label, option.Value.ToString()));
+                }
 
-            if (mValue > -1)
+                if (mValue > -1)
+                {
+                    drpOptions.SelectedValue = mValue.ToString();
+                }
+            }
+            catch (InvalidOperationException ex)
             {
-                drpOptions.SelectedValue = mValue.ToString();
+                drpOptions.Visible = false;
+                messageLabel.Visible = true;
+                messageLabel.InnerHtml = ex.Message;
+                messageLabel.Attributes.Add("class", "Red");
             }
         }
     }

@@ -53,20 +53,35 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         {
             dynamics365Client = Service.Resolve<IDynamics365Client>();
 
-            var userListItems = GetSystemUsers();
             drpOwner.Items.Clear();
             drpOwner.Items.Add(new ListItem("(not set)", String.Empty));
-            drpOwner.Items.AddRange(userListItems.ToArray());
 
-            if (AllowTeams)
+            try
             {
-                var teamListItems = GetTeams();
-                drpOwner.Items.AddRange(teamListItems.ToArray());
+                var userListItems = GetSystemUsers();
+                drpOwner.Items.AddRange(userListItems.ToArray());
+
+                if (AllowTeams)
+                {
+                    var teamListItems = GetTeams();
+                    drpOwner.Items.AddRange(teamListItems.ToArray());
+                }
+
+                if (drpOwner.Items.Count == 0)
+                {
+                    drpOwner.Enabled = false;
+                }
+                else if (!String.IsNullOrEmpty(mValue) && drpOwner.Items.FindByValue(mValue) != null)
+                {
+                    drpOwner.SelectedValue = mValue;
+                }
             }
-
-            if (!String.IsNullOrEmpty(mValue) && drpOwner.Items.FindByValue(mValue) != null)
+            catch (InvalidOperationException ex)
             {
-                drpOwner.SelectedValue = mValue;
+                drpOwner.Visible = false;
+                messageLabel.Visible = true;
+                messageLabel.InnerHtml = ex.Message;
+                messageLabel.Attributes.Add("class", "Red");
             }
         }
 

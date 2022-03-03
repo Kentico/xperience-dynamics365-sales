@@ -6,3 +6,4 @@
 !README.md
 !.github/**/*
 !CMSModules/Kentico.Xperience.Dynamics365.Sales/**/*
+!CMSSiteUtils/Export/Kentico.Xperience.Dynamics365.Sales*.zip

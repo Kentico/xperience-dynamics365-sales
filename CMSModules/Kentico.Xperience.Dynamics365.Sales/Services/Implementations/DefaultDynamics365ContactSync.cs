@@ -73,7 +73,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, dynamicsId);
                     contact.Update();
 
-                    SynchronizeActivities(contact, dynamicsId);
+                    if (dynamics365ActivitySync.SynchronizationEnabled())
+                    {
+                        SynchronizeActivities(contact, dynamicsId);
+                    }
                 }
                 else
                 {

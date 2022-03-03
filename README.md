@@ -151,7 +151,7 @@ namespace MyCompany.Customizations.Dynamics365.Sales
     {
 ```
 
-Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObect`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
+Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObject`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
 
 ```cs
 public JObject MapActivity(string entityName, string dynamicsId, object relatedData)

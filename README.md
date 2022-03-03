@@ -33,7 +33,7 @@ The scheduled task will only synchronize contacts that have reached a minimum to
 This integration uses two custom contact fields to store information about contact synchronization, which must be created manually:
 
 1. In the Xperience administration, open the __Modules__ application.
-1. Edit the Contact management module → __Classes__ tab __→ Contact__ class __→ Fields__ tab.
+1. Edit the __Contact management__ module → __Classes__ tab __→ Contact__ class __→ Fields__ tab.
 1. Add two __New fields__ with the following configuration:
 
    - __Field name__: ContactDynamics365RelatedID

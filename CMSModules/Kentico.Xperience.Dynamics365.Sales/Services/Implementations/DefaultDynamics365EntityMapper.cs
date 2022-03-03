@@ -13,7 +13,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 
 [assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(DefaultDynamics365EntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]

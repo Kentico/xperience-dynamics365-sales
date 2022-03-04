@@ -1,11 +1,16 @@
-﻿using CMS.ContactManagement;
+﻿using CMS;
+using CMS.ContactManagement;
+using CMS.Core;
 using CMS.FormEngine;
+
+using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System.Collections.Generic;
 
-namespace Kentico.Xperience.Dynamics365.Sales
+[assembly: RegisterImplementation(typeof(IContactFieldProvider), typeof(DefaultContactFieldProvider), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
+namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
-    public class ContactFormInfoProvider
+    public class DefaultContactFieldProvider : IContactFieldProvider
     {
         private HashSet<string> mExcludedFieldNames = new HashSet<string> {
             nameof(ContactInfo.ContactID),
@@ -24,10 +29,6 @@ namespace Kentico.Xperience.Dynamics365.Sales
         };
 
 
-        /// <summary>
-        /// Gets a list of the form fields from the OM.Contact class that should be included
-        /// in the Dynamics 365 field mapping.
-        /// </summary>
         public IEnumerable<FormFieldInfo> GetContactFields()
         {
             FormInfo form = FormHelper.GetFormInfo(ContactInfo.TYPEINFO.ObjectClassName, true);

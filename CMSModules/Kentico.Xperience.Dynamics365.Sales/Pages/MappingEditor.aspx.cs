@@ -25,7 +25,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
     public partial class MappingEditor : CMSModalPage
     {
         private string mSourceMappingHiddenFieldClientId;
-        private string mSourceMappingPanelClientId;
         private List<MappingItemEditor> mMappingItemEditors;
         private IEnumerable<Dynamics365EntityAttributeModel> mEntityAttributes;
         private MappingModel mSourceMapping;
@@ -40,19 +39,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
             get
             {
                 return mSourceMappingHiddenFieldClientId;
-            }
-        }
-
-
-        /// <summary>
-        /// The client ID of the panel which displays information on the window which opened
-        /// this dialog.
-        /// </summary>
-        protected string SourceMappingPanelClientId
-        {
-            get
-            {
-                return mSourceMappingPanelClientId;
             }
         }
 
@@ -106,16 +92,30 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         protected override void OnInit(EventArgs e)
         {
             base.OnInit(e);
+
+            if (EntityAttributes.Count() == 0)
+            {
+                HandleError("Couldn't retrieve Entity attributes. Please check the Event Log.");
+                return;
+            }
+
             ScriptHelper.RegisterWOpenerScript(Page);
             ScriptHelper.RegisterJQuery(Page);
 
             PageTitle.TitleText = "Dynamics 365 contact mapping";
             Save += ConfirmButton_Click;
 
-            RestoreParameters();
-            MappingRepeater.ItemDataBound += new RepeaterItemEventHandler(MappingRepeater_ItemDataBound);
-            MappingRepeater.DataSource = SourceMapping.Items;
-            MappingRepeater.DataBind();
+            try
+            {
+                RestoreParameters();
+                repMappings.ItemDataBound += new RepeaterItemEventHandler(MappingRepeater_ItemDataBound);
+                repMappings.DataSource = SourceMapping.Items;
+                repMappings.DataBind();
+            }
+            catch (Exception ex)
+            {
+                HandleError(ex.Message);
+            }
         }
 
 
@@ -126,7 +126,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         protected void MappingRepeater_ItemDataBound(object sender, RepeaterItemEventArgs e)
         {
             MappingItem item = e.Item.DataItem as MappingItem;
-            MappingItemEditor control = e.Item.FindControl("MappingItemEditorControl") as MappingItemEditor;
+            MappingItemEditor control = e.Item.FindControl("mappingItemEditorControl") as MappingItemEditor;
             control.MappingItem = item;
             control.EntityAttributes = EntityAttributes;
             control.Initialize();
@@ -140,10 +140,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         /// </summary>
         protected void ConfirmButton_Click(object sender, EventArgs e)
         {
-            MappingHiddenField.Value = GetSerializedValue();
+            hidMappingValue.Value = GetSerializedValue();
             string parametersIdentifier = QueryHelper.GetString("pid", null);
             Hashtable parameters = WindowHelper.GetItem(parametersIdentifier) as Hashtable;
-            parameters["Mapping"] = MappingHiddenField.Value;
+            parameters["Mapping"] = hidMappingValue.Value;
             WindowHelper.Add(parametersIdentifier, parameters);
         }
 
@@ -164,7 +164,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
             string content = ValidationHelper.GetString(parameters["Mapping"], String.Empty);
             mSourceMapping = CreateInitializedMapping(content);
             mSourceMappingHiddenFieldClientId = ValidationHelper.GetString(parameters["MappingHiddenFieldClientId"], null);
-            mSourceMappingPanelClientId = ValidationHelper.GetString(parameters["MappingPanelClientId"], null);
         }
 
 
@@ -232,6 +231,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
             }
 
             return JsonConvert.SerializeObject(mapping);
+        }
+
+
+        private void HandleError(string message)
+        {
+            pnlMain.Visible = false;
+            lblError.Visible = true;
+            lblError.InnerHtml = message;
         }
     }
 }

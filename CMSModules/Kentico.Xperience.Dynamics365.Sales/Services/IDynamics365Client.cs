@@ -55,6 +55,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="NotImplementedException"></exception>
+        /// <exception cref="HttpRequestException"></exception>
         HttpResponseMessage SendRequest(string endpoint, HttpMethod method, JObject data = null);
     }
 }

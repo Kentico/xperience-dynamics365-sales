@@ -15,48 +15,48 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
     {
 
         /// <summary>
-        /// MainUpdatePanel control.
+        /// pnlUpdate control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::CMS.Base.Web.UI.CMSUpdatePanel MainUpdatePanel;
+        protected global::CMS.Base.Web.UI.CMSUpdatePanel pnlUpdate;
 
         /// <summary>
-        /// MessageLabel control.
+        /// hidMappingValue control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlGenericControl MessageLabel;
+        protected global::System.Web.UI.WebControls.HiddenField hidMappingValue;
 
         /// <summary>
-        /// MappingHiddenField control.
+        /// btnEditMapping control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField MappingHiddenField;
+        protected global::CMS.Base.Web.UI.LocalizedButton btnEditMapping;
 
         /// <summary>
-        /// MappingPanel control.
+        /// pnlMappingMessage control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel MappingPanel;
+        protected global::System.Web.UI.WebControls.Panel pnlMappingMessage;
 
         /// <summary>
-        /// EditMappingButton control.
+        /// repMapping control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::CMS.Base.Web.UI.LocalizedButton EditMappingButton;
+        protected global::System.Web.UI.WebControls.Repeater repMapping;
     }
 }

@@ -71,17 +71,26 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     }
                 };
 
-                var response = dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get);
-                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(GetAllActivities), $"Error while retrieving Dynamics 365 activities: {responseContent}");
+                    var response = dynamics365Client.SendRequest(Dynamics365Constants.ENDPOINT_GET_ACTIVITIES, HttpMethod.Get);
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        cacheSettings.Cached = false;
+                        eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(GetAllActivities), $"Error while retrieving Dynamics 365 activities: {responseContent}");
+                        return Enumerable.Empty<Dynamics365EntityModel>();
+                    }
+
+                    var jObject = JObject.Parse(responseContent);
+                    return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
+                }
+                catch (Exception ex)
+                {
+                    cacheSettings.Cached = false;
+                    eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(GetAllActivities), $"Error while retrieving Dynamics 365 activities: {ex.Message}");
                     return Enumerable.Empty<Dynamics365EntityModel>();
                 }
-
-                var jObject = JObject.Parse(responseContent);
-
-                return JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityModel>>(jObject.Value<JArray>("value").ToString());
             }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365ActivitySync)}|{nameof(GetAllActivities)}"));
         }
 
@@ -115,23 +124,35 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 }
 
                 var entity = dynamics365EntityMapper.MapActivity(entityToCreate, dynamicsId, activity);
-                var response = CreateActivity(entity, entityToCreate);
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                    MarkActivityComplete(entityToCreate, responseContent);
-
-                    synchronizedActivities++;
-                }
-                else
-                {
-                    unsyncedActivities.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
-                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                    if (!synchronizationErrors.Contains(responseContent))
+                    var response = CreateActivity(entity, entityToCreate);
+                    if (response.IsSuccessStatusCode)
                     {
-                        synchronizationErrors.Add(responseContent);
+                        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        MarkActivityComplete(entityToCreate, responseContent);
+
+                        synchronizedActivities++;
+                    }
+                    else
+                    {
+                        unsyncedActivities.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
+                        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        if (!synchronizationErrors.Contains(responseContent))
+                        {
+                            synchronizationErrors.Add(responseContent);
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    unsyncedActivities.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
+                    if (!synchronizationErrors.Contains(ex.Message))
+                    {
+                        synchronizationErrors.Add(ex.Message);
+                    }
+                }
+                
             }
 
             return new SynchronizationResult
@@ -177,7 +198,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             patchData.Add("statuscode", completedState.DefaultStatus);
             
             var patchEndpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entity, newId);
-            dynamics365Client.SendRequest(patchEndpoint, new HttpMethod("PATCH"), patchData);
+            try
+            {
+                dynamics365Client.SendRequest(patchEndpoint, new HttpMethod("PATCH"), patchData);
+            }
+            catch (Exception ex)
+            {
+                eventLogService.LogError(nameof(DefaultDynamics365ActivitySync), nameof(MarkActivityComplete), ex.Message);
+            }
         }
     }
 }

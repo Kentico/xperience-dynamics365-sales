@@ -136,47 +136,58 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 var entity = GetEntityForContact(dynamicsId, contact, mapping, out doCreate);
                 HttpResponseMessage response;
 
-                // Send request
-                if (doCreate)
+                try
                 {
-                    if (entity.Count == 0)
+                    // Send request
+                    if (doCreate)
+                    {
+                        if (entity.Count == 0)
+                        {
+                            unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                            continue;
+                        }
+
+                        response = CreateContact(contact, entity);
+                    }
+                    else
+                    {
+                        if (entity.Count == 0)
+                        {
+                            // It isn't an error to have zero properties (contact is up-to-date)
+                            continue;
+                        }
+
+                        if (entity == null)
+                        {
+                            unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                            synchronizationErrors.Add("Unable to map partial object.");
+                            continue;
+                        }
+
+                        response = UpdateContact(dynamicsId, entity);
+                    }
+
+                    // Handle response
+                    if (response.IsSuccessStatusCode)
+                    {
+                        synchronizedContacts++;
+                    }
+                    else
                     {
                         unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                        continue;
+                        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        if (!synchronizationErrors.Contains(responseContent))
+                        {
+                            synchronizationErrors.Add(responseContent);
+                        }
                     }
-
-                    response = CreateContact(contact, entity);
                 }
-                else
-                {
-                    if (entity.Count == 0)
-                    {
-                        // It isn't an error to have zero properties (contact is up-to-date)
-                        continue;
-                    }
-
-                    if (entity == null)
-                    {
-                        unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                        synchronizationErrors.Add("Unable to map partial object.");
-                        continue;
-                    }
-
-                    response = UpdateContact(dynamicsId, entity);
-                }
-
-                // Handle response
-                if (response.IsSuccessStatusCode)
-                {
-                    synchronizedContacts++;
-                }
-                else
+                catch (Exception ex)
                 {
                     unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                    if (!synchronizationErrors.Contains(responseContent))
+                    if (!synchronizationErrors.Contains(ex.Message))
                     {
-                        synchronizationErrors.Add(responseContent);
+                        synchronizationErrors.Add(ex.Message);
                     }
                 }
             }

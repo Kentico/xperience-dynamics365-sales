@@ -10,6 +10,9 @@ using System.Collections.Generic;
 [assembly: RegisterImplementation(typeof(IContactFieldProvider), typeof(DefaultContactFieldProvider), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
+    /// <summary>
+    /// Default implementation of <see cref="IContactFieldProvider"/>.
+    /// </summary>
     public class DefaultContactFieldProvider : IContactFieldProvider
     {
         private HashSet<string> mExcludedFieldNames = new HashSet<string> {

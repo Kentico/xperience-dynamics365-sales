@@ -49,10 +49,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         }
 
 
-        protected void Page_Load(object sender, EventArgs e)
+        protected override void OnPreRender(EventArgs e)
         {
+            base.OnPreRender(e);
             dynamics365Client = Service.Resolve<IDynamics365Client>();
 
+            drpOwner.Enabled = true;
             drpOwner.Items.Clear();
             drpOwner.Items.Add(new ListItem("(not set)", String.Empty));
 
@@ -67,21 +69,21 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
                     drpOwner.Items.AddRange(teamListItems.ToArray());
                 }
 
-                if (drpOwner.Items.Count == 0)
+                if (drpOwner.Items.Count == 1)
                 {
                     drpOwner.Enabled = false;
-                }
-                else if (!String.IsNullOrEmpty(mValue) && drpOwner.Items.FindByValue(mValue) != null)
+                    drpOwner.ToolTip = "Unable to load selections, please check the Event Log.";
+                };
+                
+                if (!String.IsNullOrEmpty(mValue) && drpOwner.Items.FindByValue(mValue) != null)
                 {
                     drpOwner.SelectedValue = mValue;
                 }
             }
             catch (InvalidOperationException ex)
             {
-                drpOwner.Visible = false;
-                messageLabel.Visible = true;
-                messageLabel.InnerHtml = ex.Message;
-                messageLabel.Attributes.Add("class", "Red");
+                drpOwner.Enabled = false;
+                drpOwner.ToolTip = "Unable to load selections, please check the Event Log.";
             }
         }
 
@@ -113,23 +115,35 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
                     }
                 };
 
-                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_TEAM) + "?$select=teamid,name";
-                var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
-                if (!response.IsSuccessStatusCode)
+                try
                 {
+                    var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_TEAM) + "?$select=teamid,name";
+                    var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        cacheSettings.Cached = false;
+                        return Enumerable.Empty<ListItem>();
+                    }
+
+                    var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    var jObject = JObject.Parse(sourceJson);
+                    var teamArray = jObject.Value<JArray>("value");
+
+                    return teamArray.Select(team =>
+                    {
+                        var text = $"{team.Value<string>("name")} (team)";
+                        var value = $"/{Dynamics365Constants.ENTITY_TEAM}s({team.Value<string>("teamid")})";
+                        return new ListItem(text, value);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    cacheSettings.Cached = false;
+                    Service.Resolve<IEventLogService>().LogError(nameof(UserTeamSelector), nameof(GetTeams), ex.Message);
+
                     return Enumerable.Empty<ListItem>();
                 }
-
-                var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                var jObject = JObject.Parse(sourceJson);
-                var teamArray = jObject.Value<JArray>("value");
-
-                return teamArray.Select(team =>
-                {
-                    var text = $"{team.Value<string>("name")} (team)";
-                    var value = $"/{Dynamics365Constants.ENTITY_TEAM}s({team.Value<string>("teamid")})";
-                    return new ListItem(text, value);
-                });
+                
             }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(UserTeamSelector)}|{nameof(GetTeams)}"));
         }
     }

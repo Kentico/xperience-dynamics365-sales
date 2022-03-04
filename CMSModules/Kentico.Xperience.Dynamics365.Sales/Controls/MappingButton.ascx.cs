@@ -7,6 +7,8 @@ using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
+using Newtonsoft.Json;
+
 using System;
 using System.Collections;
 using System.Linq;
@@ -25,11 +27,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         {
             get
             {
-                return MappingHiddenField.Value;
+                return hidMappingValue.Value;
             }
             set
             {
-                MappingHiddenField.Value = value as string;
+                hidMappingValue.Value = value as string;
             }
         }
 
@@ -41,7 +43,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         {
             get
             {
-                return MappingHiddenField.ClientID;
+                return hidMappingValue.ClientID;
             }
         }
 
@@ -90,7 +92,32 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
             base.OnPreRender(e);
 
             EnsureConnection();
-            EditMappingButton.OnClientClick = String.Format("{0}; return false;", Page.ClientScript.GetCallbackEventReference(this, null, "Dynamics_EditContactMapping", null));
+            DisplayCurrentMapping();
+            btnEditMapping.OnClientClick = String.Format("{0}; return false;", Page.ClientScript.GetCallbackEventReference(this, null, "Dynamics_EditContactMapping", null));
+        }
+
+
+        /// <summary>
+        /// Shows a message with the mapping information from the database.
+        /// </summary>
+        private void DisplayCurrentMapping()
+        {
+            var currentMapping = Value as string;
+            if (String.IsNullOrEmpty(currentMapping))
+            {
+                return;
+            }
+
+            var mapping = JsonConvert.DeserializeObject<MappingModel>(currentMapping);
+            var itemsWithMapping = mapping.Items.Where(item => !String.IsNullOrEmpty(item.Dynamics365Field));
+            if (itemsWithMapping.Count() == 0)
+            {
+                return;
+            }
+
+            repMapping.DataSource = itemsWithMapping;
+            repMapping.DataBind();
+            pnlMappingMessage.Visible = true;
         }
 
 
@@ -99,28 +126,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         /// </summary>
         private void EnsureConnection()
         {
-            var syncEnabled = Service.Resolve<IDynamics365ContactSync>().SynchronizationEnabled();
-            if (!syncEnabled)
-            {
-                HandleError("Contact synchronization is not enabled.");
-                return;
-            }
-
             var entityAttributes = Service.Resolve<IDynamics365Client>().GetEntityAttributes(Dynamics365Constants.ENTITY_CONTACT);
             if (entityAttributes.Count() == 0)
             {
-                HandleError("Couldn't connect to Dynamics 365. Please check the Event Log.");
+                btnEditMapping.Enabled = false;
+                btnEditMapping.ToolTip = "Unable to map fields, please check the Event Log.";
             }
-        }
-
-
-        private void HandleError(string message)
-        {
-            Enabled = false;
-            EditMappingButton.Visible = false;
-            MessageLabel.InnerHtml = message;
-            MessageLabel.Attributes.Add("class", "Red");
-            MessageLabel.Visible = true;
         }
 
 
@@ -128,8 +139,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         {
             Hashtable parameters = new Hashtable();
             parameters["Mapping"] = Value;
-            parameters["MappingHiddenFieldClientId"] = MappingHiddenField.ClientID;
-            parameters["MappingPanelClientId"] = MappingPanel.ClientID;
+            parameters["MappingHiddenFieldClientId"] = hidMappingValue.ClientID;
 
             return parameters;
         }

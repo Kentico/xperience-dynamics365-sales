@@ -100,47 +100,80 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public IEnumerable<Dynamics365EntityAttributeModel> GetEntityAttributes(string entityName)
         {
+            if (String.IsNullOrEmpty(entityName))
+            {
+                throw new ArgumentNullException(nameof(entityName));
+            }
+
             return progressiveCache.Load(cacheSettings => {
                 cacheSettings.CacheDependency = GetDefaultCacheDependency();
 
-                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
-                var response = SendRequest(endpoint, HttpMethod.Get);
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
+                    var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
+                    var response = SendRequest(endpoint, HttpMethod.Get);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        var jObject = JObject.Parse(sourceJson);
+                        var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
+                        return attributes.Where(attr =>
+                            attr.AttributeType != EntityAttributeType.PICKLIST
+                            && attr.AttributeType != EntityAttributeType.VIRTUAL
+                            && attr.AttributeType != EntityAttributeType.LOOKUP
+                            && !attr.IsPrimaryId
+                        ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+                    }
+                    else
+                    {
+                        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), responseContent);
+                        cacheSettings.Cached = false;
+
+                        return Enumerable.Empty<Dynamics365EntityAttributeModel>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntityAttributes), ex.Message);
                     cacheSettings.Cached = false;
 
                     return Enumerable.Empty<Dynamics365EntityAttributeModel>();
                 }
-
-                var sourceJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                var jObject = JObject.Parse(sourceJson);
-                var attributes = JsonConvert.DeserializeObject<IEnumerable<Dynamics365EntityAttributeModel>>(jObject.Value<JArray>("value").ToString());
-                return attributes.Where(attr =>
-                    attr.AttributeType != EntityAttributeType.PICKLIST
-                    && attr.AttributeType != EntityAttributeType.VIRTUAL
-                    && attr.AttributeType != EntityAttributeType.LOOKUP
-                    && !attr.IsPrimaryId
-                ).OrderBy(attr => attr.DisplayName?.UserLocalizedLabel?.Label ?? attr.LogicalName);
+                
             }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetEntityAttributes)}|{entityName}"));
         }
 
 
         public Dynamics365EntityModel GetEntity(string endpoint)
         {
+            if (String.IsNullOrEmpty(endpoint))
+            {
+                throw new ArgumentNullException(nameof(endpoint));
+            }
+
             return progressiveCache.Load(cacheSettings => {
                 cacheSettings.CacheDependency = GetDefaultCacheDependency();
 
-                var response = SendRequest(endpoint, HttpMethod.Get);
-                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
+                    var response = SendRequest(endpoint, HttpMethod.Get);
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return JsonConvert.DeserializeObject<Dynamics365EntityModel>(responseContent);
+                    }
+                    else
+                    {
+                        cacheSettings.Cached = false;
+                        eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntity), responseContent);
+                        return null;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntity), responseContent);
+                    cacheSettings.Cached = false;
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetEntity), ex.Message);
                     return null;
                 }
             }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetEntity)}|{endpoint}"));
@@ -152,21 +185,32 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             return progressiveCache.Load(cacheSettings => {
                 cacheSettings.CacheDependency = GetDefaultCacheDependency();
 
-                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_USER) + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
-                var response = SendRequest(endpoint, HttpMethod.Get);
-                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var jObject = JObject.Parse(responseContent);
-                    var userArray = jObject.Value<JArray>("value");
+                    var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_USER) + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
+                    var response = SendRequest(endpoint, HttpMethod.Get);
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jObject = JObject.Parse(responseContent);
+                        var userArray = jObject.Value<JArray>("value");
 
-                    return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+                        return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
+                    }
+                    else
+                    {
+                        cacheSettings.Cached = false;
+                        eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetSystemUsers), responseContent);
+                        return Enumerable.Empty<Dynamics365SystemUser>();
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetSystemUsers), responseContent);
+                    cacheSettings.Cached = false;
+                    eventLogService.LogError(nameof(DefaultDynamics365Client), nameof(GetSystemUsers), ex.Message);
                     return Enumerable.Empty<Dynamics365SystemUser>();
                 }
+
             }, new CacheSettings(TimeSpan.FromMinutes(Dynamics365Constants.CACHE_MINUTES).TotalMinutes, $"{nameof(DefaultDynamics365Client)}|{nameof(GetSystemUsers)}"));
         }
 

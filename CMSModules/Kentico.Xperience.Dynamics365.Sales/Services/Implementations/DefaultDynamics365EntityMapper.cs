@@ -116,29 +116,37 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             var fullEntity = MapEntity(entityName, mapping, sourceObject);
 
-            // Get contact info from Dynamics
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entityName, dynamicsId);
-            var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
-            var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                eventLogService.LogError(nameof(DefaultDynamics365EntityMapper), nameof(MapPartialEntity), $"Error while retrieving existing Dynamics 365 Entity: {responseContent}");
+                // Get contact info from Dynamics
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, entityName, dynamicsId);
+                var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
+                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                {
+                    eventLogService.LogError(nameof(DefaultDynamics365EntityMapper), nameof(MapPartialEntity), $"Error while retrieving existing Dynamics 365 Entity: {responseContent}");
+                    return null;
+                }
+
+                var dynamicsObject = JObject.Parse(responseContent);
+                foreach (var item in mapping.Items)
+                {
+                    var baseInfoValue = GetXperienceValue(item, sourceObject);
+                    var dynamicsValue = dynamicsObject.Value<string>(item.Dynamics365Field);
+                    if (baseInfoValue == null || ValidationHelper.GetString(baseInfoValue, String.Empty) == dynamicsValue)
+                    {
+                        // Column doesn't exist in Xperience, or the value matches Dynamics
+                        fullEntity.Remove(item.Dynamics365Field);
+                    }
+                }
+
+                return fullEntity;
+            }
+            catch (Exception ex)
+            {
+                eventLogService.LogError(nameof(DefaultDynamics365EntityMapper), nameof(MapPartialEntity), ex.Message);
                 return null;
             }
-
-            var dynamicsObject = JObject.Parse(responseContent);
-            foreach(var item in mapping.Items)
-            {
-                var baseInfoValue = GetXperienceValue(item, sourceObject);
-                var dynamicsValue = dynamicsObject.Value<string>(item.Dynamics365Field);
-                if (baseInfoValue == null || ValidationHelper.GetString(baseInfoValue, String.Empty) == dynamicsValue)
-                {
-                    // Column doesn't exist in Xperience, or the value matches Dynamics
-                    fullEntity.Remove(item.Dynamics365Field);
-                }
-            }
-
-            return fullEntity;
         }
 
 

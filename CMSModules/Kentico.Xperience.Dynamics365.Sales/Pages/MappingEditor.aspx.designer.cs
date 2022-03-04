@@ -15,39 +15,39 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
     {
 
         /// <summary>
-        /// MappingHiddenField control.
+        /// hidMappingValue control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField MappingHiddenField;
+        protected global::System.Web.UI.WebControls.HiddenField hidMappingValue;
 
         /// <summary>
-        /// MappingPanel control.
+        /// lblError control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel MappingPanel;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl lblError;
 
         /// <summary>
-        /// MainPanel control.
+        /// pnlMain control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel MainPanel;
+        protected global::System.Web.UI.WebControls.Panel pnlMain;
 
         /// <summary>
-        /// MappingRepeater control.
+        /// repMappings control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Repeater MappingRepeater;
+        protected global::System.Web.UI.WebControls.Repeater repMappings;
     }
 }

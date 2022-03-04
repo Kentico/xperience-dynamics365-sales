@@ -61,11 +61,19 @@ After [setting up the environment](#set-up-the-environment), you will find two n
 
 ### Contact synchronization
 
- When the contact synchronization task runs, it will collect all Xperience contacts that have a score equal to or greater than the __Minimum score__ setting. The full contact data is sent to Dynamics 365 according to how you've [mapped the fields](#enable-contact-synchronization), and the ID of the Dynamics 365 contact that was created is stored in a custom Xperience field named "ContactDynamics365RelatedID." If activity synchronization is enabled, the contact's activities are also synchronized during creation of the contact.
+ When the contact synchronization task runs, it will collect all Xperience contacts that have a score equal to or greater than the __Minimum score__ setting. The full contact data is sent to Dynamics 365 according to how you've [mapped the fields](#enable-contact-synchronization), and the ID of the Dynamics 365 contact that was created is stored in a custom Xperience field named "ContactDynamics365RelatedID." If activity synchronization is enabled, the contact's activities are also synchronized during creation of the contact. You can also synchronize a contact to Dynamics 365 regardless of their score by adding the __Import to Dynamics 365__ step to a [__Marketing automation__ process](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation/working-with-marketing-automation-processes).
 
 Contacts that were _already_ synchronized in the past (e.g. the "ContactDynamics365RelatedID" fields contains a Dynamics 365 contact ID) are synchronized again during the task execution. The Xperience contact data is compared to the Dynamics 365 contact data to check whether the information was updated since the last synchronization. If no mapped fields have changed, synchronization is skipped for that contact. If some fields have changed, a partial update is made to the Dynamics 365 contact to avoid unwanted triggering of workflows (e.g. if you have a process that runs whenever a contact's email address is updated).
 
-You can also synchronize a contact to Dynamics 365 regardless of their score by adding the __Import to Dynamics 365__ step to a [__Marketing automation__ process](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation/working-with-marketing-automation-processes).
+The Xperience contact fields that are available for mapping are automatically retrieved at run time, so any custom fields added by your developers will appear automatically. However, if you would like to adjust the retrieved fields for any reason, you can register a custom implementation of [`IContactFieldProvider`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IContactFieldProvider.cs):
+
+```cs
+[assembly: RegisterImplementation(typeof(IContactFieldProvider), typeof(CustomContactFieldProvider), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.Default)]
+namespace MyCompany.Customizations.Dynamics365
+{
+    public class CustomContactFieldProvider : IContactFieldProvider
+    {
+```
 
 ### Activity synchronization
 

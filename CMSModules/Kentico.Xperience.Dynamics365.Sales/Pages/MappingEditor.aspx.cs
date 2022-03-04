@@ -177,7 +177,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Pages
         {
             // Create a new mapping every time, in case fields were added/removed from ContactInfo
             var newMapping = new MappingModel();
-            var contactFields = new ContactFormInfoProvider().GetContactFields();
+            var contactFields = Service.Resolve<IContactFieldProvider>().GetContactFields();
             newMapping.Items.AddRange(contactFields.Select(field => new MappingItem(field)));
 
             // No previous mapping found in DB

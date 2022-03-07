@@ -1,12 +1,9 @@
 ﻿using CMS.ContactManagement;
 
 using Kentico.Xperience.Dynamics365.Sales.Models;
-
-using Newtonsoft.Json.Linq;
+using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
@@ -21,14 +18,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// the contact at the time of creation.
         /// </summary>
         /// <param name="contact">The contact to create in Dynamics 365.</param>
-        /// <param name="data">An object containing the Dynamics 365 fields and the values
-        /// from the Xperience contact.</param>
-        /// <returns>The response from the Web API.</returns>
-        HttpResponseMessage CreateContact(ContactInfo contact, JObject data);
+        /// <param name="mapping">The contact field mapping definiton.</param>
+        /// <param name="currentResults">An object to track the results of the creation.</param>
+        void CreateContact(ContactInfo contact, MappingModel mapping, SynchronizationResult currentResults);
 
 
         /// <summary>
-        /// Gets all contacts who meet the scoring requirements.
+        /// Gets all contacts who meet the scoring requirements, but have not been linked to a
+        /// Dynamics 365 contact.
         /// </summary>
         IEnumerable<ContactInfo> GetContactsWithScore();
 
@@ -56,10 +53,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <summary>
         /// Updates an existing contact in Dynamics 365 using the provided <paramref name="dynamicsId"/>.
         /// </summary>
+        /// <param name="contact">The Xperience contact being synchronized.</param>
         /// <param name="dynamicsId">The identifier of the contact in Dynamics 365 to update.</param>
-        /// <param name="data">An object containing the Dynamics 365 fields and the values
-        /// from the Xperience contact.</param>
-        /// <returns>The response from the Web API.</returns>
-        HttpResponseMessage UpdateContact(string dynamicsId, JObject data);
+        /// <param name="mapping">The contact field mapping definition.</param>
+        /// <param name="currentResults">An object to track the results of the update.</param>
+        void UpdateContact(ContactInfo contact, string dynamicsId, MappingModel mapping, SynchronizationResult currentResults);
     }
 }

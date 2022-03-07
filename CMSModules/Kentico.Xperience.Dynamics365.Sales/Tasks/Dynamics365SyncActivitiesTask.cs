@@ -41,7 +41,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
                 var result = Service.Resolve<IDynamics365ActivitySync>().SynchronizeActivities(dynamicsId, activitiesSinceLastRun);
 
                 totalSynchronized += result.SynchronizedObjectCount;
-                if (result.HasErrors)
+                if (result.SynchronizationErrors.Count > 0)
                 {
                     hasErrors = true;
                     var message = $"The following errors occurred during synchronization of contact '{contact.ContactDescriptiveName}' activities:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"

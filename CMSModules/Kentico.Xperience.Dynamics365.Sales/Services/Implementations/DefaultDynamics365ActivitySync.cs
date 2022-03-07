@@ -97,19 +97,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public SynchronizationResult SynchronizeActivities(string dynamicsId, IEnumerable<ActivityInfo> activities)
         {
-            var synchronizedActivities = 0;
-            var unsyncedActivities = new List<string>();
-            var synchronizationErrors = new List<string>();
+            var synchronizationResult = new SynchronizationResult();
             var dynamicsActivityEntities = GetAllActivities();
             if (dynamicsActivityEntities.Count() == 0)
             {
-                return new SynchronizationResult
-                {
-                    HasErrors = true,
-                    SynchronizationErrors = new List<string>() { "Unable to retrieve activity types." },
-                    SynchronizedObjectCount = 0,
-                    UnsynchronizedObjectIdentifiers = activities.Select(activity => $"{activity.ActivityTitle} ({activity.ActivityID})")
-                };
+                synchronizationResult.SynchronizationErrors.Add("Unable to retrieve activity types.");
+                synchronizationResult.UnsynchronizedObjectIdentifiers.AddRange(activities.Select(activity => $"{activity.ActivityTitle} ({activity.ActivityID})"));
+                return synchronizationResult;
             }
 
             var dynamicsActivityNames = dynamicsActivityEntities.Select(entity => entity.LogicalName);
@@ -129,39 +123,35 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     var response = CreateActivity(entity, entityToCreate);
                     if (response.IsSuccessStatusCode)
                     {
+                        // Success
                         var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                         MarkActivityComplete(entityToCreate, responseContent);
 
-                        synchronizedActivities++;
+                        synchronizationResult.SynchronizedObjectCount++;
                     }
                     else
                     {
-                        unsyncedActivities.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
+                        // Failure
+                        synchronizationResult.UnsynchronizedObjectIdentifiers.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
                         var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                        if (!synchronizationErrors.Contains(responseContent))
+                        if (!synchronizationResult.SynchronizationErrors.Contains(responseContent))
                         {
-                            synchronizationErrors.Add(responseContent);
+                            synchronizationResult.SynchronizationErrors.Add(responseContent);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    unsyncedActivities.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
-                    if (!synchronizationErrors.Contains(ex.Message))
+                    synchronizationResult.UnsynchronizedObjectIdentifiers.Add($"{activity.ActivityTitle} ({activity.ActivityID})");
+                    if (!synchronizationResult.SynchronizationErrors.Contains(ex.Message))
                     {
-                        synchronizationErrors.Add(ex.Message);
+                        synchronizationResult.SynchronizationErrors.Add(ex.Message);
                     }
                 }
                 
             }
 
-            return new SynchronizationResult
-            {
-                HasErrors = synchronizationErrors.Count > 0,
-                SynchronizationErrors = synchronizationErrors,
-                SynchronizedObjectCount = synchronizedActivities,
-                UnsynchronizedObjectIdentifiers = unsyncedActivities
-            };
+            return synchronizationResult;
         }
 
 

@@ -8,23 +8,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Models
     public class SynchronizationResult
     {
         /// <summary>
-        /// True if the synchronization process encountered errors.
-        /// </summary>
-        public bool HasErrors
-        {
-            get;
-            set;
-        }
-
-
-        /// <summary>
         /// A list of error messages encountered during the synchronization process.
         /// </summary>
-        public IEnumerable<string> SynchronizationErrors
+        public List<string> SynchronizationErrors
         {
             get;
             set;
-        }
+        } = new List<string>();
 
 
         /// <summary>
@@ -41,10 +31,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Models
         /// A list of human-friendly identifiers for the objects that were not synchronized
         /// due to errors during the process.
         /// </summary>
-        public IEnumerable<string> UnsynchronizedObjectIdentifiers
+        public List<string> UnsynchronizedObjectIdentifiers
         {
             get;
             set;
-        }
+        } = new List<string>();
     }
 }

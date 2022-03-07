@@ -75,7 +75,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
                     drpOwner.ToolTip = "Unable to load selections, please check the Event Log.";
                 };
                 
-                if (!String.IsNullOrEmpty(mValue) && drpOwner.Items.FindByValue(mValue) != null)
+                if (drpOwner.Items.FindByValue(mValue) != null)
                 {
                     drpOwner.SelectedValue = mValue;
                 }

@@ -1,11 +1,9 @@
-﻿using CMS.ContactManagement;
-using CMS.Core;
+﻿using CMS.Core;
 using CMS.Scheduler;
 
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Tasks
@@ -23,20 +21,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Tasks
                 return "Contact synchronization is disabled.";
             }
 
-            // Merge contacts with score and contacts with linked ID, as they may have been synced by automation step without
-            // meeting score requirements
-            var contactsWithScore = contactSyncService.GetContactsWithScore().ToList();
-            var contactsToSync = contactSyncService.GetSynchronizedContacts().ToList();
-            foreach (var contact in contactsWithScore)
-            {
-                if (!contactsToSync.Any(c => c.ContactGUID == contact.ContactGUID))
-                {
-                    contactsToSync.Add(contact);
-                }
-            }
+            // Get previously synced contacts that were modified since task last run
+            var contactsToSync = contactSyncService.GetSynchronizedContacts().Where(contact => contact.ContactLastModified > task.TaskLastRunTime).ToList();
+
+            // Add contacts that meet scoring requirements, but not synced
+            contactsToSync.AddRange(contactSyncService.GetContactsWithScore());
 
             var result = contactSyncService.SynchronizeContacts(contactsToSync);
-            if (result.HasErrors)
+            if (result.SynchronizationErrors.Count > 0)
             {
                 var message = $"The following errors occurred during synchronization:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"
                     + $"<br/><br/>As a result, the following contacts were not synchronized:<br/><br/>{String.Join("<br/>", result.UnsynchronizedObjectIdentifiers)}";

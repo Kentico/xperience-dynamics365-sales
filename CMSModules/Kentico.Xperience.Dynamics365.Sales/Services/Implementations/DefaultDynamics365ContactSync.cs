@@ -15,7 +15,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 
 [assembly: RegisterImplementation(typeof(IDynamics365ContactSync), typeof(DefaultDynamics365ContactSync), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
@@ -58,35 +57,67 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         }
 
 
-        public HttpResponseMessage CreateContact(ContactInfo contact, JObject data)
+        public void CreateContact(ContactInfo contact, MappingModel mapping, SynchronizationResult currentResults)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_CONTACT);
-            var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Post, data);
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var responseJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                var createdContact = JObject.Parse(responseJson);
-                var dynamicsId = createdContact.Value<string>("contactid");
-                if (!String.IsNullOrEmpty(dynamicsId))
+                var entity = dynamics365EntityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, contact);
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_CONTACT);
+                var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Post, entity);
+                var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                if (response.IsSuccessStatusCode)
                 {
-                    contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_SYNCEDON, DateTime.Now);
-                    contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, dynamicsId);
-                    contact.Update();
-
-                    if (dynamics365ActivitySync.SynchronizationEnabled())
+                    var createdContact = JObject.Parse(responseContent);
+                    var dynamicsId = createdContact.Value<string>("contactid");
+                    if (!String.IsNullOrEmpty(dynamicsId))
                     {
-                        SynchronizeActivities(contact, dynamicsId);
+                        // Success, link contact
+                        contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_SYNCEDON, DateTime.Now);
+                        contact.SetValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, dynamicsId);
+                        contact.Update();
+
+                        if (dynamics365ActivitySync.SynchronizationEnabled())
+                        {
+                            SynchronizeActivities(contact, dynamicsId);
+                        }
+
+                        currentResults.SynchronizedObjectCount++;
+                    }
+                    else
+                    {
+                        // Success, but can't link contact
+                        var message = $"While synchronizing the contact '{contact.ContactDescriptiveName}', the request was successful, but the Dynamics 365 ID could not be retrieved."
+                            + " Please delete the contact in Dynamics 365 and contact the developer.";
+                        eventLogService.LogError(nameof(DefaultDynamics365ContactSync), nameof(CreateContact), message);
+
+                        var linkError = "Unable to retrieve Dynamics 365 contact ID. Please check the Event Log.";
+                        currentResults.UnsynchronizedObjectIdentifiers.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                        if (!currentResults.SynchronizationErrors.Contains(linkError))
+                        {
+                            currentResults.SynchronizationErrors.Add(linkError);
+                        }
+
+                        currentResults.SynchronizedObjectCount++;
                     }
                 }
                 else
                 {
-                    var message = $"While synchronizing the contact '{contact.ContactDescriptiveName}', the request was successful, but the Dynamics 365 ID could not be retrieved."
-                        + " Please delete the contact in Dynamics 365 and contact the developer.";
-                    eventLogService.LogError(nameof(DefaultDynamics365ContactSync), nameof(CreateContact), message);
+                    // Failure
+                    currentResults.UnsynchronizedObjectIdentifiers.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                    if (!currentResults.SynchronizationErrors.Contains(responseContent))
+                    {
+                        currentResults.SynchronizationErrors.Add(responseContent);
+                    }
                 }
             }
-
-            return response;
+            catch (Exception ex)
+            {
+                currentResults.UnsynchronizedObjectIdentifiers.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                if (!currentResults.SynchronizationErrors.Contains(ex.Message))
+                {
+                    currentResults.SynchronizationErrors.Add(ex.Message);
+                }
+            }
         }
 
 
@@ -94,6 +125,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             var minimumScore = ValidationHelper.GetInteger(settingsService[Dynamics365Constants.SETTINGS_MINSCORE], 0);
             return ContactInfo.Provider.Get()
+                .WhereNull(Dynamics365Constants.CUSTOMFIELDS_LINKEDID)
                 .WhereIn(
                     nameof(ContactInfo.ContactID),
                     ScoreContactRuleInfoProvider.GetContactsWithScore(minimumScore).AsSingleColumn(nameof(ContactInfo.ContactID))
@@ -114,99 +146,80 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
         public SynchronizationResult SynchronizeContacts(IEnumerable<ContactInfo> contacts)
         {
+            var synchronizationResult = new SynchronizationResult();
             var mappingDefinition = settingsService[Dynamics365Constants.SETTING_FIELDMAPPING];
             if (String.IsNullOrEmpty(mappingDefinition))
             {
-                return new SynchronizationResult
-                {
-                    HasErrors = true,
-                    SynchronizationErrors = new List<string>() { "Unable to load contact field mapping. Please check the settings." },
-                    UnsynchronizedObjectIdentifiers = contacts.Select(c => $"{c.ContactDescriptiveName} ({c.ContactGUID})")
-                };
+                synchronizationResult.SynchronizationErrors.Add("Unable to load contact field mapping. Please check the settings.");
+                synchronizationResult.UnsynchronizedObjectIdentifiers.AddRange(contacts.Select(c => $"{c.ContactDescriptiveName} ({c.ContactGUID})"));
+                return synchronizationResult;
             }
 
             var mapping = JsonConvert.DeserializeObject<MappingModel>(mappingDefinition);
-            var synchronizedContacts = 0;
-            var unsyncedContacts = new List<string>();
-            var synchronizationErrors = new List<string>();
             foreach (var contact in contacts)
             {
-                bool doCreate;
                 var dynamicsId = contact.GetStringValue(Dynamics365Constants.CUSTOMFIELDS_LINKEDID, String.Empty);
-                var entity = GetEntityForContact(dynamicsId, contact, mapping, out doCreate);
-                HttpResponseMessage response;
-
-                try
+                if (String.IsNullOrEmpty(dynamicsId))
                 {
-                    // Send request
-                    if (doCreate)
-                    {
-                        if (entity.Count == 0)
-                        {
-                            unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                            continue;
-                        }
-
-                        response = CreateContact(contact, entity);
-                    }
-                    else
-                    {
-                        if (entity.Count == 0)
-                        {
-                            // It isn't an error to have zero properties (contact is up-to-date)
-                            continue;
-                        }
-
-                        if (entity == null)
-                        {
-                            unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                            synchronizationErrors.Add("Unable to map partial object.");
-                            continue;
-                        }
-
-                        response = UpdateContact(dynamicsId, entity);
-                    }
-
-                    // Handle response
-                    if (response.IsSuccessStatusCode)
-                    {
-                        synchronizedContacts++;
-                    }
-                    else
-                    {
-                        unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                        if (!synchronizationErrors.Contains(responseContent))
-                        {
-                            synchronizationErrors.Add(responseContent);
-                        }
-                    }
+                    CreateContact(contact, mapping, synchronizationResult);
                 }
-                catch (Exception ex)
+                else
                 {
-                    unsyncedContacts.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
-                    if (!synchronizationErrors.Contains(ex.Message))
-                    {
-                        synchronizationErrors.Add(ex.Message);
-                    }
+                    UpdateContact(contact, dynamicsId, mapping, synchronizationResult);
                 }
             }
 
-            return new SynchronizationResult
-            {
-                HasErrors = synchronizationErrors.Count > 0,
-                SynchronizationErrors = synchronizationErrors,
-                SynchronizedObjectCount = synchronizedContacts,
-                UnsynchronizedObjectIdentifiers = unsyncedContacts
-            };
+            return synchronizationResult;
         }
 
 
-        public HttpResponseMessage UpdateContact(string dynamicsId, JObject data)
+        public void UpdateContact(ContactInfo contact, string dynamicsId, MappingModel mapping, SynchronizationResult currentResults)
         {
-            var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, Dynamics365Constants.ENTITY_CONTACT, dynamicsId);
+            try
+            {
+                var entity = dynamics365EntityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, dynamicsId, contact);
+                if (entity == null)
+                {
+                    currentResults.UnsynchronizedObjectIdentifiers.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                    var mappingError = "Unable to map entity. Please check the Event Log.";
+                    if (!currentResults.SynchronizationErrors.Contains(mappingError))
+                    {
+                        currentResults.SynchronizationErrors.Add(mappingError);
+                    }
 
-            return dynamics365Client.SendRequest(endpoint, new HttpMethod("PATCH"), data);
+                    return;
+                }
+
+                if (entity.Count == 0)
+                {
+                    // No changes to update
+                    return;
+                }
+
+                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, Dynamics365Constants.ENTITY_CONTACT, dynamicsId);
+                var response = dynamics365Client.SendRequest(endpoint, new HttpMethod("PATCH"), entity);
+                if (response.IsSuccessStatusCode)
+                {
+                    currentResults.SynchronizedObjectCount++;
+                }
+                else
+                {
+                    currentResults.UnsynchronizedObjectIdentifiers.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                    var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (!currentResults.SynchronizationErrors.Contains(responseContent))
+                    {
+                        currentResults.SynchronizationErrors.Add(responseContent);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                currentResults.UnsynchronizedObjectIdentifiers.Add($"{contact.ContactDescriptiveName} ({contact.ContactGUID})");
+                if (!currentResults.SynchronizationErrors.Contains(ex.Message))
+                {
+                    currentResults.SynchronizationErrors.Add(ex.Message);
+                }
+            }
         }
 
 
@@ -218,49 +231,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     .ToList();
 
             var result = dynamics365ActivitySync.SynchronizeActivities(dynamicsId, activities);
-            if (result.HasErrors)
+            if (result.SynchronizationErrors.Count > 0)
             {
                 var message = $"The following errors occurred during synchronization of contact '{contact.ContactDescriptiveName}' activities:<br/><br/>{String.Join("<br/>", result.SynchronizationErrors)}"
                         + $"<br/><br/>As a result, the following activities were not synchronized:<br/><br/>{String.Join("<br/>", result.UnsynchronizedObjectIdentifiers)}";
                 eventLogService.LogError(nameof(DefaultDynamics365ContactSync), nameof(SynchronizeActivities), message);
-            }
-        }
-
-
-        /// <summary>
-        /// Gets an Entity for upserting to Dynamics 365. If the <paramref name="contact"/> has already synchronized,
-        /// a partial Entity is created by checking for local values that differ from Xperience 365's values. If the contact
-        /// was deleted in Dynamics 365, a full Entity is generated for creation as indicated by <paramref name="doCreate"/>.
-        /// </summary>
-        /// <param name="dynamicsId">The ID of the linked Dynamics 365 contact, or an empty string if the contact wasn't
-        /// synchronized.</param>
-        /// <param name="contact">The contact to generate the Entity for.</param>
-        /// <param name="mapping">The mapping definition.</param>
-        /// <param name="doCreate">Returns true if the contact should be created instead of updated.</param>
-        /// <returns></returns>
-        private JObject GetEntityForContact(string dynamicsId, ContactInfo contact, MappingModel mapping, out bool doCreate)
-        {
-            if (String.IsNullOrEmpty(dynamicsId))
-            {
-                doCreate = true;
-                return dynamics365EntityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, contact);
-            }
-            else
-            {
-                // Ensure contact exists in Dynamics
-                var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_PATCH_GETSINGLE, Dynamics365Constants.ENTITY_CONTACT, dynamicsId);
-                var response = dynamics365Client.SendRequest(endpoint, HttpMethod.Get);
-                if (response.StatusCode == HttpStatusCode.NotFound)
-                {
-                    // Contact was deleted in Dynamics, perform full create and re-link
-                    doCreate = true;
-                    return dynamics365EntityMapper.MapEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, contact);
-                }
-                else
-                {
-                    doCreate = false;
-                    return dynamics365EntityMapper.MapPartialEntity(Dynamics365Constants.ENTITY_CONTACT, mapping, dynamicsId, contact);
-                }
             }
         }
     }

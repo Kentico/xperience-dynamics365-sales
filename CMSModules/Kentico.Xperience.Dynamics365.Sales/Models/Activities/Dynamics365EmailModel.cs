@@ -19,7 +19,8 @@ namespace Kentico.Xperience.Dynamics365.Sales.Models.Activities
 
 
         /// <summary>
-        /// The internal Dynamics 365 ID of the contact/user that received the email.
+        /// The internal Dynamics 365 ID of the contact/user that received the email. If empty,
+        /// it will be set to the linked Dynamics 365 contact when the activity is synchronized.
         /// </summary>
         public string To
         {

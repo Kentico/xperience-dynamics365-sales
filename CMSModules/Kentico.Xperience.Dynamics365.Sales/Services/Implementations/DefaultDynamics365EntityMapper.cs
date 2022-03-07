@@ -384,6 +384,11 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({emailModel.To})")));
                 }
             }
+            else
+            {
+                // Email was sent to contact before they were linked to a Dynamics contact
+                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({dynamicsId})")));
+            }
 
             if (!String.IsNullOrEmpty(emailModel.From))
             {

@@ -6,7 +6,6 @@ using CMS.Membership;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;
 using Kentico.Xperience.Dynamics365.Sales.Models.Activities;
-using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using Newtonsoft.Json;

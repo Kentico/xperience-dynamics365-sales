@@ -13,6 +13,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 
 [assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(DefaultDynamics365EntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
@@ -89,6 +91,30 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             DecodeValues(entity);
 
             return entity;
+        }
+
+
+        public Dictionary<string, string> MapChangedColumns(MappingModel mapping, BaseInfo xperienceObject, JObject entity)
+        {
+            var result = new Dictionary<string, string>();
+            foreach (var item in mapping.Items.Where(i => !String.IsNullOrEmpty(i.Dynamics365Field)))
+            {
+                if (!xperienceObject.ContainsColumn(item.XperienceFieldName))
+                {
+                    continue;
+                }
+
+                var baseInfoValue = GetXperienceValue(item, xperienceObject);
+                var dynamicsValue = entity.Value<string>(item.Dynamics365Field);
+                if (String.IsNullOrEmpty(dynamicsValue) || ValidationHelper.GetString(baseInfoValue, String.Empty) == dynamicsValue)
+                {
+                    continue;
+                }
+
+                result.Add(item.XperienceFieldName, dynamicsValue);
+            }
+
+            return result;
         }
 
 

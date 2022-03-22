@@ -151,13 +151,9 @@ You can add these actions to your [__Marketing automation__ processes](https://d
 
 ![Phone call automation process](/Assets/phonecallprocess.png)
 
-In this example, the contact submits a form on your site requesting more information about a product. The process triggers and waits in the "Call contact" step, where one of your marketers calls the contact to discuss your offerings. After the call, the marketer [approves the progress](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation/managing-the-flow-of-contacts-in-automation-processes#Managingtheflowofcontactsinautomationprocesses-Movingcontactsbetweenstepsintheprocess) and can also leave a comment about the call using __Comment and move to step__. The activity will then be logged including the information found in [`Dynamics365PhoneCallModel`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Models/Activities/Dynamics365PhoneCallModel.cs). If the marketer's email address matches an email address in Dynamics 365, that user will be linked to the Dynamics 365 activity.
-
 To log the __Email__ activity, place it after a __Send transactional email__ or __Send marketing email__ step:
 
 ![Email automation process](/Assets/emailprocess.png)
-
-When the activity is logged, it will contain the information found in [`Dynamics365EmailModel`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Models/Activities/Dynamics365EmailModel.cs), such as the email's subject and body. If the email's "From" address matches a user in Dynamics 365, that user will be linked to the Dynamics 365 activity.
 
 > __Note:__ If the "Log Dynamics 365 email" step is placed after a "Send marketing email" step, the body of the email will not be included in the Dynamics 365 activity.
 
@@ -176,7 +172,7 @@ The task will be assigned to the user or team specified by the __Default owner__
 
 The appointment can contain required and optional attendees that you choose from your Dynamics 365 users. The appointment will always include the contact that is currently in the automation process.
 
-## Synchronizing custom activities
+## Synchronizing other activity types
 
 As described in [How the synchronization works](#activity-synchronization), Xperience activities are automatically synchronized if the __Code name__ matches an entity name in Dynamics 365. Or, you can synchronize activities whose names do _not_ match by implementing the `MapActivityType` method as described [here](#activity-synchronization).
 
@@ -195,19 +191,65 @@ namespace MyCompany.Customizations.Dynamics365.Sales
 
 Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObject`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
 
+> __Note:__ When registering custom implementations of the integration's interfaces, make sure to include the original code found in [/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/).
+
+### Example: synchronizing the "Page visit" activity
+
+The Xperience "Page visit" activity is not synchronized by default, as there is no Dynamics 365 activity with the name "pagevisit." However, using the instructions in the above section, you can easily track what pages your contacts visited in Dynamics 365.
+
+1. Open the [__Power Apps__](https://powerapps.microsoft.com/) application in Dynamics 365.
+2. Expand the __Data__ tab and click __Tables__.
+3. Click __New table__.
+4. Set the desired table name and properties. Ensure that the __Table type__ is "Activity table:"
+
+![Page visit creation](/Assets/pagevisittable.png)
+
+5. Once the creation is finished, view the __Columns__ of the table and click __New column__.
+6. Set the properties of the new column. In this case, we are creating a column to store the visited URL:
+
+![Page URL creation](/Assets/pageurlcolumn.png)
+
+7. Note the name of the new column (e.g. "cr0a3_pageurl") and the table name (e.g. "cr0a3_pagevisit").
+8. In your Xperience CMS project, create a custom `IDynamics365EntityMapper` as described in the [Synchronizing other activity types](#synchronizing-other-activity-types) section. You can copy the code from [`DefaultDynamics365EntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/DefaultDynamics365EntityMapper.cs) to get started.
+
+9. Use the `MapActivityType` method to translate the Xperience activity name "pagevisit" into your custom Dynamics 365 activity name noted in __step 7__:
+
+```cs
+public string MapActivityType(string activityType)
+{
+   if (activityType == PredefinedActivityType.PAGE_VISIT)
+   {
+         return "cr0a3_pagevisit";
+   }
+
+   return activityType;
+}
+```
+
+10. Use the `MapActivity` method to add the desired data to the columns you added to the table in __step 7__:
+
 ```cs
 public JObject MapActivity(string entityName, string dynamicsId, object relatedData)
 {
    var entity = new JObject();
-   
-   if (entityName.Equals("mycustomactivity", StringComparison.OrdinalIgnoreCase))
+   MapCommonActivityProperties(dynamicsId, entity, relatedData);
+
+   switch (entityName)
    {
-         var activity = relatedData as ActivityInfo;
-         entity.Add("performedonpage", activity.ActivityURL);
+         case "cr0a3_pagevisit":
+            var activity = relatedData as ActivityInfo;
+            entity.Add("cr0a3_pageurl", activity.ActivityURL);
+            entity.Add("subject", $"Contact visited {activity.ActivityURL}");
+            break;
+         //...
    }
+
+   DecodeValues(entity);
 
    return entity;
 }
 ```
 
-> __Note:__ When registering custom implementations of the integration's interfaces, make sure to include the original code found in [/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/).
+11. Build the project
+
+With this customization, when your Xperience contacts visit pages on your website, the Xperience "Page visit" activity will be automatically synchronized by the "Dynamics 365 activity synchronization" scheduled task and can be viewed directly in the Dynamics 365 contact's timeline.

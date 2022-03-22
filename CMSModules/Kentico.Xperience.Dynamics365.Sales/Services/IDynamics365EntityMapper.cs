@@ -5,6 +5,8 @@ using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 
 using Newtonsoft.Json.Linq;
 
+using System.Collections.Generic;
+
 namespace Kentico.Xperience.Dynamics365.Sales.Services
 {
     /// <summary>
@@ -30,6 +32,21 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         /// <param name="relatedData">An object containing the required data for the activity, such as <see cref="ActivityInfo"/>.</param>
         /// <returns>An object with Dynamics 365 fields and their values.</returns>
         JObject MapActivity(string entityName, string dynamicsId, object relatedData);
+
+
+        /// <summary>
+        /// Creates a list of the Xperience object's columns whose values are different from the Dynamics 365
+        /// entity's mapped values.
+        /// </summary>
+        /// <param name="mapping">The mapping definition containing Dynamics 365 fields and their mapped
+        /// Xperience fields.</param>
+        /// <param name="xperienceObject">The Xperience object to retrieve the changed columns of.</param>
+        /// <param name="entity">The Dynamics 365 entity that is linked to the <paramref name="xperienceObject"/>
+        /// to check for differing values.</param>
+        /// <returns>A Dictionary where <see cref="Dictionary{TKey, TValue}.Keys"/> are the names of the Xperience columns
+        /// whose value is different from the Dynamics 365 value, and <see cref="Dictionary{TKey, TValue}.Values"/> are the
+        /// Dynamics 365 values.</returns>
+        Dictionary<string, string> MapChangedColumns(MappingModel mapping, BaseInfo xperienceObject, JObject entity);
 
 
         /// <summary>

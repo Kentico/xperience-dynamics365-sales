@@ -243,7 +243,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             if (relatedData is ActivityInfo)
             {
-                entity.Add("actualstart", (relatedData as ActivityInfo).ActivityCreated);
+                entity.Add("scheduledstart", (relatedData as ActivityInfo).ActivityCreated);
             }
 
             entity.Add("isregularactivity", true);

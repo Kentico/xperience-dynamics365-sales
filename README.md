@@ -253,3 +253,57 @@ public JObject MapActivity(string entityName, string dynamicsId, object relatedD
 11. Build the project
 
 With this customization, when your Xperience contacts visit pages on your website, the Xperience "Page visit" activity will be automatically synchronized by the "Dynamics 365 activity synchronization" scheduled task and can be viewed directly in the Dynamics 365 contact's timeline.
+
+## Automating Microsoft Teams messages
+
+Using the magic of __Power Automate__, your team can be automatically notified of new Dynamics 365 contacts or activities when they are created. For example, if a visitor on your site fills out a "Contact Us" form requesting more information about your products, a new post can be created in your Teams "Sales" channel for your Sales team to follow up immediately.
+
+To accomplish this, first you need to synchronize the Kentico Xperience "Form submission" activity to Dynamics 365. You can follow [this example](#example-synchronizing-the-"page-visit"-activity) to create a new activity type in Dynamics 365 for form submissions. When creating custom columns in the table, add one called "Form name" to hold the code name of the Xperience form. The mapping logic in your `MapActivity` implementation could look something like this:
+
+```cs
+case "cr0a3_formsubmission":
+   var activity = relatedData as ActivityInfo;
+   var formInfo = BizFormInfo.Provider.Get(activity.ActivityItemID);
+   var dataClass = DataClassInfoProvider.GetDataClassInfo(formInfo.FormClassID);
+   var formDetail = BizFormItemProvider.GetItem(activity.ActivityItemDetailID, dataClass.ClassName);
+   var activityBody = new StringBuilder();
+   foreach (var column in formDetail.ColumnNames)
+   {
+      var submittedData = formDetail.GetStringValue(column, String.Empty);
+      if (!String.IsNullOrEmpty(submittedData))
+      {
+            activityBody.Append($"{column}: {submittedData}\r\n");
+      }
+   }
+
+   entity.Add("subject", $"Contact submitted form '{formInfo.FormDisplayName}'");
+   entity.Add("cr0a3_formname", formInfo.FormName);
+   entity.Add("description", activityBody.ToString());
+   break;
+```
+
+With your custom code in place, you should start to see form submission activities automatically synchronized from Xperience to Dynamics 365. Now, it's time to send a Teams message when that happens!
+
+1. Open the [Power Automate](https://powerautomate.microsoft.com/) application in Dynamics 365.
+2. Click the __Create__ tab.
+3. Click __Start from blank → Automated cloud flow__.
+4. In the dialog box, create a flow name and select Microsoft Dataverse's "When a row is added, modified or deleted" trigger.
+5. Configure the trigger to run when a form submission is added.
+6. Add a __Condition__ control after the trigger. This control will check the custom "Form name" column added to the activity, which contains the Xperience form name. Since we want to only send Teams messages for the "Contact Us" form, copy the code name from Xperience's __Forms application → (edit form) → General tab → Form code name__ field.
+
+After adding the __Condition__ control, you will see two paths you can add more actions to:
+
+![Teams flow condition control](/Assets/teamsflowconditon.png)
+
+7. In the "If yes" path, add the __Get a row by ID__ action to find the contact that submitted the form:
+
+![Teams flow get contact](/Assets/teamsflowgetcontact.png)
+
+8. After that, add a Microsoft Teams __Post message in chat or channel__ action. Here, you can construct the body of the message using dynamic data from the activity (trigger) and the contact (from the previous step). In the sample code posted above, we set the form data to the Dynamics 365 activity's __description__ field, so we can include that in the body.  
+If you want to provide a direct link to the Dynamics 365 contact, you can use the approach described in [this article](https://d365demystified.com/2020/06/13/generate-dynamics-365-record-link-in-a-flow-using-cds-connector-power-automate/). In this example, we used the function `uriHost(body('Get_a_row_by_ID')?['@odata.id'])` to get the URL of the Dynamics 365 tenant. The finished message looks something like this:
+
+![Teams flow message body](/Assets/teamsflowmessagebody.png)
+
+9. Finally, add a __Terminate__ control to the "If no" path to end the flow if the form name doesn't match the "Contact Us" form.
+
+Once you save and enable the flow, you've successfully automated the synchronizing of Xperience form submissions and their data to Dynamics 365, and Teams messages containing the form data and a link to the contact!

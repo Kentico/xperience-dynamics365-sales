@@ -258,6 +258,8 @@ With this customization, when your Xperience contacts visit pages on your websit
 
 Using the magic of __Power Automate__, your team can be automatically notified of new Dynamics 365 contacts or activities when they are created. For example, if a visitor on your site fills out a "Contact Us" form requesting more information about your products, a new post can be created in your Teams "Sales" channel for your Sales team to follow up immediately.
 
+![Teams sample message](/Assets/teamsmessage.png)
+
 To accomplish this, first you need to synchronize the Kentico Xperience "Form submission" activity to Dynamics 365. You can follow [this example](#example-synchronizing-the-page-visit-activity) to create a new activity type in Dynamics 365 for form submissions. When creating custom columns in the table, add one called "Form name" to hold the code name of the Xperience form. The mapping logic in your `MapActivity` implementation could look something like this:
 
 ```cs
@@ -300,7 +302,8 @@ After adding the __Condition__ control, you will see two paths you can add more 
 ![Teams flow get contact](/Assets/teamsflowgetcontact.png)
 
 8. After that, add a Microsoft Teams __Post message in chat or channel__ action. Here, you can construct the body of the message using dynamic data from the activity (trigger) and the contact (from the previous step). In the sample code posted above, we set the form data to the Dynamics 365 activity's __description__ field, so we can include that in the body.  
-If you want to provide a direct link to the Dynamics 365 contact, you can use the approach described in [this article](https://d365demystified.com/2020/06/13/generate-dynamics-365-record-link-in-a-flow-using-cds-connector-power-automate/). In this example, we used the function `uriHost(body('Get_a_row_by_ID')?['@odata.id'])` to get the URL of the Dynamics 365 tenant. The finished message looks something like this:
+If you want to provide a direct link to the Dynamics 365 contact, you can use the approach described in [this article](https://d365demystified.com/2020/06/13/generate-dynamics-365-record-link-in-a-flow-using-cds-connector-power-automate/). In this example, we used the function `uriHost(body('Get_a_row_by_ID')?['@odata.id'])` to get the URL of the Dynamics 365 tenant. To replace the line breaks in the activity description for better Teams formatting, you can use `uriComponentToString(replace(uriComponent(triggerBody()['description']), '%0A', '<br/>'))`  
+The finished message looks something like this:
 
 ![Teams flow message body](/Assets/teamsflowmessagebody.png)
 

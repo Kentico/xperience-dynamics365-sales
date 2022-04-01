@@ -258,7 +258,7 @@ With this customization, when your Xperience contacts visit pages on your websit
 
 Using the magic of __Power Automate__, your team can be automatically notified of new Dynamics 365 contacts or activities when they are created. For example, if a visitor on your site fills out a "Contact Us" form requesting more information about your products, a new post can be created in your Teams "Sales" channel for your Sales team to follow up immediately.
 
-To accomplish this, first you need to synchronize the Kentico Xperience "Form submission" activity to Dynamics 365. You can follow [this example](#example-synchronizing-the-"page-visit"-activity) to create a new activity type in Dynamics 365 for form submissions. When creating custom columns in the table, add one called "Form name" to hold the code name of the Xperience form. The mapping logic in your `MapActivity` implementation could look something like this:
+To accomplish this, first you need to synchronize the Kentico Xperience "Form submission" activity to Dynamics 365. You can follow [this example](#example-synchronizing-the-page-visit-activity) to create a new activity type in Dynamics 365 for form submissions. When creating custom columns in the table, add one called "Form name" to hold the code name of the Xperience form. The mapping logic in your `MapActivity` implementation could look something like this:
 
 ```cs
 case "cr0a3_formsubmission":

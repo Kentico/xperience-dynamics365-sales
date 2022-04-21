@@ -169,7 +169,7 @@ The Xperience "Page visit" activity is not synchronized by default, as there is 
 ![Page URL creation](/Assets/pageurlcolumn.png)
 
 7. Note the name of the new column (e.g. "cr0a3_pageurl") and the table name (e.g. "cr0a3_pagevisit").
-8. In your Xperience CMS project, create a custom `IDynamics365EntityMapper` as described in the [Synchronizing other activity types](#synchronizing-other-activity-types) section. You can copy the code from [`DefaultDynamics365EntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/DefaultDynamics365EntityMapper.cs) to get started.
+8. In your Xperience CMS project, create a custom `IDynamics365EntityMapper` as described in the [Activity synchronization](#activity-synchronization) section. You can copy the code from [`DefaultDynamics365EntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/DefaultDynamics365EntityMapper.cs) to get started.
 
 9. Use the `MapActivityType` method to translate the Xperience activity name "pagevisit" into your custom Dynamics 365 activity name noted in __step 7__:
 

@@ -24,18 +24,6 @@
 
 
         /// <summary>
-        /// The code name for the phone call activity type.
-        /// </summary>
-        public const string ACTIVITY_PHONECALL = "phonecall";
-
-
-        /// <summary>
-        /// The code name for the email activity type.
-        /// </summary>
-        public const string ACTIVITY_EMAIL = "email";
-
-
-        /// <summary>
         /// The Entity name of Dynamics 365 contacts.
         /// </summary>
         public const string ENTITY_CONTACT = "contact";

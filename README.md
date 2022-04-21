@@ -2,7 +2,7 @@
 
 # Xperience Dynamics 365 Sales integration
 
-This integration enables the synchronization of Xperience contacts and activities to a Dynamics 365 tenant, and synchronizing updates of those contacts in Dynamics 365 back to your Xperience website. It also contains custom Marketing automation actions to log four out-of-the-box Dynamics 365 activity types.
+This integration enables the synchronization of Xperience contacts and activities to a Dynamics 365 tenant, and synchronizing updates of those contacts in Dynamics 365 back to your Xperience website. It also contains custom Marketing automation actions to log Dynamics 365 tasks and appointments.
 
 ## Set up the environment
 
@@ -117,83 +117,42 @@ In order for an activity to be synchronized, the [activity type](https://docs.xp
 
 ![Dynamics 365 entities](/Assets/entities.png)
 
-To synchronize this activity from Xperience to Dynamics 365, this integration includes a custom activity type whose __Code name__ matches the Dynamics 365 entity name:
+To synchronize "phone call" activities from from Xperience to Dynamics 365, you would create a custom activity type whose __Code name__ matches the Dynamics 365 entity name:
 
 ![Phone call activity](/Assets/phonecall.png)
 
-You can customize this behavior by developing your own implementation of [`IDynamicsEntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IDynamics365EntityMapper.cs). The `MapActivityType` method is called while synchronizing activities to determine the name of the Dynamics 365 entity to create, using the passed `activityType` parameter. For example, if you have a custom entity in Dynamics 365 named "pageview" and you want to synchronize the Xperience activity "pagevisit," your implementation would look something like this:
-
-```cs
-public string MapActivityType(string activityType)
-{
-   if (activityType.Equals(PredefinedActivityType.PAGE_VISIT, StringComparison.OrdinalIgnoreCase))
-   {
-         return "pageview";
-   }
-
-   return activityType;
-}
-```
-
-## Logging Dynamics 365 activities
-
-This integration includes two custom Xperience [activity types](https://docs.xperience.io/on-line-marketing-features/configuring-and-customizing-your-on-line-marketing-features/configuring-activities/adding-custom-activity-types) that can be synchronized to Dynamics 365. You can log and synchronize these activities to Dynamics 365 to track how your marketers interacted with your Xperience contacts:
-
-- Phone call
-- Email
-
-You can log these activities [via code](https://docs.xperience.io/on-line-marketing-features/configuring-and-customizing-your-on-line-marketing-features/configuring-activities/logging-custom-activities-through-the-api) as usual, but this integration also includes two custom __Marketing automation__ actions to help you log them:
-
-- Log Dynamics 365 phone call
-- Log Dynamics 365 email
-
-You can add these actions to your [__Marketing automation__ processes](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation/working-with-marketing-automation-processes) to log Xperience activities, which will be synchronized the next time the "Dynamics 365 activity synchronization" scheduled task runs. To log the __Phone call__ activity, place it after an __Approve progress__ step:
-
-![Phone call automation process](/Assets/phonecallprocess.png)
-
-To log the __Email__ activity, place it after a __Send transactional email__ or __Send marketing email__ step:
-
-![Email automation process](/Assets/emailprocess.png)
-
-> __Note:__ If the "Log Dynamics 365 email" step is placed after a "Send marketing email" step, the body of the email will not be included in the Dynamics 365 activity.
-
-There are two other custom automation actions which do not log Xperience activities, but will create Dynamics 365 entities _when they execute_:
-
-- Create Dynamics 365 task
-- Create Dynamics 365 appointment
-
-With the __Create Dynamics 365 task__ action, you can create a task for your Dynamics 365 users to complete. For example, if you want to send flowers to everyone who submits a form on your site, the process could look like this:
-
-![Task automation process](/Assets/taskprocess.png)
-
-The task will be assigned to the user or team specified by the __Default owner__ setting, or unassigned if not set. You can also create an appointment in Dynamics 365 using the __Create Dynamics 365 appointment__ action. For example, if a partner submits a form indicating they'd like to have a meeting to discuss a new opportunity, the process might look like this:
-
-![Appointment automation process](/Assets/appointmentprocess.png)
-
-The appointment can contain required and optional attendees that you choose from your Dynamics 365 users. The appointment will always include the contact that is currently in the automation process.
-
-## Synchronizing other activity types
-
-As described in [How the synchronization works](#activity-synchronization), Xperience activities are automatically synchronized if the __Code name__ matches an entity name in Dynamics 365. Or, you can synchronize activities whose names do _not_ match by implementing the `MapActivityType` method as described [here](#activity-synchronization).
-
-Either way, the activity data must be mapped to the Dynamics 365 entity by your developers as there is no way for the integration to know where the information should be stored. To map your custom activity to a Dynamics 365 entity, you can register your own implementation of [`IDynamics365EntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IDynamics365EntityMapper.cs):
+You can customize this behavior by developing your own implementation of [`IDynamicsEntityMapper`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IDynamics365EntityMapper.cs):
 
 ```cs
 [assembly: RegisterImplementation(typeof(IDynamics365EntityMapper), typeof(CustomEntityMapper), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.Default)]
 namespace MyCompany.Customizations.Dynamics365.Sales
 {
     /// <summary>
-    /// A custom Entity mapper for Dynamics 365, to map our "mycustomactivity" activity. 
+    /// A custom Entity mapper for Dynamics 365. 
     /// </summary>
     public class CustomEntityMapper : IDynamics365EntityMapper
     {
 ```
 
-Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObject`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
-
 > __Note:__ When registering custom implementations of the integration's interfaces, make sure to include the original code found in [/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/).
 
-### Example: synchronizing the "Page visit" activity
+The `MapActivityType` method is called while synchronizing activities to determine the name of the Dynamics 365 entity to create, using the passed `activityType` parameter. For example, if you want to create "phonecall" activities in Dynamics 365, but the code name of the activity in Xperience is "phone," your implementation would look something like this:
+
+```cs
+public string MapActivityType(string activityType)
+{
+   if (activityType.Equals("phone", StringComparison.OrdinalIgnoreCase))
+   {
+         return "phonecall";
+   }
+
+   return activityType;
+}
+```
+
+Once the Xperience activity is configured to synchronize the Dynamics 365, the activity data must be mapped to the Dynamics 365 entity by your developers as there is no way for the integration to know where the information should be stored. Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObject`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
+
+## Example: synchronizing the "Page visit" activity
 
 The Xperience "Page visit" activity is not synchronized by default, as there is no Dynamics 365 activity with the name "pagevisit." However, using the instructions in the above section, you can easily track what pages your contacts visited in Dynamics 365.
 
@@ -253,6 +212,23 @@ public JObject MapActivity(string entityName, string dynamicsId, object relatedD
 11. Build the project
 
 With this customization, when your Xperience contacts visit pages on your website, the Xperience "Page visit" activity will be automatically synchronized by the "Dynamics 365 activity synchronization" scheduled task and can be viewed directly in the Dynamics 365 contact's timeline.
+
+## Creating Tasks and Appointments
+
+This integration contains two custom Marketing automation actions which will create Dynamics 365 activities when they execute:
+
+- Create Dynamics 365 task
+- Create Dynamics 365 appointment
+
+With the __Create Dynamics 365 task__ action, you can create a task for your Dynamics 365 users to complete. For example, if you want to send flowers to everyone who submits a form on your site, the process could look like this:
+
+![Task automation process](/Assets/taskprocess.png)
+
+The task will be assigned to the user or team specified by the __Default owner__ setting, or unassigned if not set. You can also create an appointment in Dynamics 365 using the __Create Dynamics 365 appointment__ action. For example, if a partner submits a form indicating they'd like to have a meeting to discuss a new opportunity, the process might look like this:
+
+![Appointment automation process](/Assets/appointmentprocess.png)
+
+The appointment can contain required and optional attendees that you choose from your Dynamics 365 users. The appointment will always include the contact that is currently in the automation process.
 
 ## Automating Microsoft Teams messages
 

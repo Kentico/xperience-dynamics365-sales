@@ -9,7 +9,6 @@ using Kentico.Xperience.Dynamics365.Sales.Models.Activities;
 using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;
 using Kentico.Xperience.Dynamics365.Sales.Services;
 
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using System;
@@ -69,12 +68,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
 
             switch (entityName)
             {
-                case Dynamics365Constants.ACTIVITY_PHONECALL:
-                    MapPhoneCallProperties(dynamicsId, entity, relatedData);
-                    break;
-                case Dynamics365Constants.ACTIVITY_EMAIL:
-                    MapEmailProperties(dynamicsId, entity, relatedData);
-                    break;
                 case Dynamics365Constants.ACTIVITY_APPOINTMENT:
                     MapAppointmentProperties(dynamicsId, entity, relatedData);
                     break;
@@ -343,83 +336,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             if (taskModel.Priority > -1)
             {
                 entity.Add("prioritycode", taskModel.Priority);
-            }
-        }
-
-
-        private void MapPhoneCallProperties(string dynamicsId, JObject entity, object relatedData)
-        {
-            if (!(relatedData is ActivityInfo))
-            {
-                throw new InvalidOperationException($"{nameof(ActivityInfo)} is required to map the phone call activity.");
-            }
-
-            var phoneCallModel = JsonConvert.DeserializeObject<Dynamics365PhoneCallModel>((relatedData as ActivityInfo).ActivityValue);
-            entity.Add("subject", phoneCallModel.Subject);
-            entity.Add("phonenumber", phoneCallModel.PhoneNumber);
-            entity.Add("description", phoneCallModel.Description);
-
-            var callStarted = (relatedData as ActivityInfo).ActivityCreated;
-            entity.Add("actualend", callStarted.AddMinutes(phoneCallModel.Duration));
-            entity.Add("scheduledend", callStarted.AddMinutes(phoneCallModel.Duration));
-            entity.Add("actualdurationminutes", phoneCallModel.Duration);
-
-            var parties = new JArray();
-            if (String.IsNullOrEmpty(phoneCallModel.To))
-            {
-                phoneCallModel.To = dynamicsId;
-            }
-
-            parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({phoneCallModel.To})")));
-
-            if (!String.IsNullOrEmpty(phoneCallModel.From))
-            {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", $"/{Dynamics365Constants.ENTITY_USER}s({phoneCallModel.From})")));
-
-            }
-
-            entity.Add("phonecall_activity_parties", parties);
-        }
-
-
-        private void MapEmailProperties(string dynamicsId, JObject entity, object relatedData)
-        {
-            if (!(relatedData is ActivityInfo))
-            {
-                throw new InvalidOperationException($"{nameof(ActivityInfo)} is required to map the email activity.");
-            }
-
-            var emailModel = JsonConvert.DeserializeObject<Dynamics365EmailModel>((relatedData as ActivityInfo).ActivityValue);
-            entity.Add("subject", emailModel.Subject);
-            entity.Add("description", emailModel.Body);
-
-            var parties = new JArray();
-            if (!String.IsNullOrEmpty(emailModel.To))
-            {
-                if (emailModel.SentToUser)
-                {
-                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", $"/{Dynamics365Constants.ENTITY_USER}s({emailModel.To})")));
-                }
-                else
-                {
-                    parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({emailModel.To})")));
-                }
-            }
-            else
-            {
-                // Email was sent to contact before they were linked to a Dynamics contact
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.ToRecipient), new JProperty($"partyid_{Dynamics365Constants.ENTITY_CONTACT}@odata.bind", $"/{Dynamics365Constants.ENTITY_CONTACT}s({dynamicsId})")));
-            }
-
-            if (!String.IsNullOrEmpty(emailModel.From))
-            {
-                parties.Add(new JObject(new JProperty("participationtypemask", ParticipationTypeMaskEnum.Sender), new JProperty($"partyid_{Dynamics365Constants.ENTITY_USER}@odata.bind", $"/{Dynamics365Constants.ENTITY_USER}s({emailModel.From})")));
-
-            }
-
-            if (parties.Count > 0)
-            {
-                entity.Add("email_activity_parties", parties);
             }
         }
     }

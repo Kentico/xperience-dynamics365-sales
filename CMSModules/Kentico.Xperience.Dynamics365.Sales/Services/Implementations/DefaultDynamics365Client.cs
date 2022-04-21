@@ -276,8 +276,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 {
                     $"cms.settingskey|{Dynamics365Constants.SETTING_CLIENTID.ToLower()}",
                     $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}",
-                    $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}",
-                    $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}"
+                    $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}"
                 }
             };
         }

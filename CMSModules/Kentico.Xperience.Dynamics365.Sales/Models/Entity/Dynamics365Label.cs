@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
+namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
     /// The human-friendly label for an Entity attribute or option set option.

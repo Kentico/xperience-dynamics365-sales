@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
+namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
     /// The required value configuration for a <see cref="Dynamics365EntityAttributeModel"/>.

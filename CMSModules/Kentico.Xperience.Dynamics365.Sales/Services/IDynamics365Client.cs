@@ -1,4 +1,4 @@
-﻿using Kentico.Xperience.Dynamics365.Sales.Models;
+using Kentico.Xperience.Dynamics365.Sales.Models;
 using Kentico.Xperience.Dynamics365.Sales.Models.Entity;
 
 using Newtonsoft.Json.Linq;

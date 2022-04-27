@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Constants
+namespace Kentico.Xperience.Dynamics365.Sales.Constants
 {
     /// <summary>
     /// Represents the type of a Dynamics 365 systemuser.

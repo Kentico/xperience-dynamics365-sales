@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="MappingEditor.aspx.cs" MasterPageFile="~/CMSMasterPages/UI/Dialogs/ModalDialogPage.master"
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="MappingEditor.aspx.cs" MasterPageFile="~/CMSMasterPages/UI/Dialogs/ModalDialogPage.master"
     Inherits="Kentico.Xperience.Dynamics365.Sales.Pages.MappingEditor" EnableEventValidation="false" Theme="Default" %>
 <%@ Register TagPrefix="uc" TagName="MappingItemEditor" Src="~/CMSModules/Kentico.Xperience.Dynamics365.Sales/Controls/MappingItemEditor.ascx" %>
 

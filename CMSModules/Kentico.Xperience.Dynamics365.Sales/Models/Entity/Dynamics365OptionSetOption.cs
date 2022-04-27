@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
+namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
     /// An option for an Entity option set.

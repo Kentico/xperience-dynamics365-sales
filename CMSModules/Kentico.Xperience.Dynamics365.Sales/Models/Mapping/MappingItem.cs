@@ -1,4 +1,4 @@
-﻿using CMS.FormEngine;
+using CMS.FormEngine;
 using CMS.Helpers;
 
 using Kentico.Xperience.Dynamics365.Sales.Constants;

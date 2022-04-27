@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Constants
+namespace Kentico.Xperience.Dynamics365.Sales.Constants
 {
     /// <summary>
     /// Constants used in the Dynamics 365 integration.

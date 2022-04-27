@@ -1,4 +1,4 @@
-﻿using Kentico.Xperience.Dynamics365.Sales.Services;
+using Kentico.Xperience.Dynamics365.Sales.Services;
 
 using System;
 

@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" EnableViewState="true" AutoEventWireup="True" Codebehind="MappingButton.ascx.cs" Inherits="Kentico.Xperience.Dynamics365.Sales.Controls.MappingButton" %>
+<%@ Control Language="C#" EnableViewState="true" AutoEventWireup="True" Codebehind="MappingButton.ascx.cs" Inherits="Kentico.Xperience.Dynamics365.Sales.Controls.MappingButton" %>
 <%@ Import Namespace="Kentico.Xperience.Dynamics365.Sales.Models.Mapping" %>
 
 <cms:CMSUpdatePanel ID="pnlUpdate" runat="server">

@@ -1,4 +1,4 @@
-﻿using CMS;
+using CMS;
 using CMS.Core;
 using CMS.Helpers;
 

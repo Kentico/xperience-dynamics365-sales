@@ -1,4 +1,4 @@
-﻿using CMS.Core;
+using CMS.Core;
 using CMS.Scheduler;
 
 using Kentico.Xperience.Dynamics365.Sales.Services;

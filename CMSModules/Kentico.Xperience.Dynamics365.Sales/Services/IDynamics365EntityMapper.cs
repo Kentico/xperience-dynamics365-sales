@@ -1,4 +1,4 @@
-﻿using CMS.Activities;
+using CMS.Activities;
 using CMS.DataEngine;
 
 using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;

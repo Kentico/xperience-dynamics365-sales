@@ -1,4 +1,4 @@
-﻿using CMS;
+using CMS;
 using CMS.DataEngine;
 
 using Kentico.Xperience.Dynamics365.Sales;

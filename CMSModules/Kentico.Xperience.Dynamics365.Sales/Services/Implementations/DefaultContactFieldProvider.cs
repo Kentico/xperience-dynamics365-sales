@@ -1,4 +1,4 @@
-﻿using CMS;
+using CMS;
 using CMS.ContactManagement;
 using CMS.Core;
 using CMS.FormEngine;

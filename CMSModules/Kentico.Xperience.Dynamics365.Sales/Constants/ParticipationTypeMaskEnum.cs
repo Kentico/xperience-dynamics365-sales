@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Constants
+namespace Kentico.Xperience.Dynamics365.Sales.Constants
 {
     /// <summary>
     /// Available values for a party's participation type when creating parties for activities.

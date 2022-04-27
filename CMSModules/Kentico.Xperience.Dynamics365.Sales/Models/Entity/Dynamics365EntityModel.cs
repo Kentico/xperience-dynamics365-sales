@@ -1,4 +1,4 @@
-﻿namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
+namespace Kentico.Xperience.Dynamics365.Sales.Models.Entity
 {
     /// <summary>
     /// Describes the structure of a Dynamics 365 Entity.

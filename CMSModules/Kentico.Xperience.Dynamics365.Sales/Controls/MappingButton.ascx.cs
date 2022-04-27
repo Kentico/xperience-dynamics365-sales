@@ -1,4 +1,4 @@
-﻿using CMS.Base.Web.UI;
+using CMS.Base.Web.UI;
 using CMS.Core;
 using CMS.FormEngine.Web.UI;
 using CMS.Helpers;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Models.Activities
 {

@@ -1,4 +1,4 @@
-﻿using Kentico.Xperience.Dynamics365.Sales.Constants;
+using Kentico.Xperience.Dynamics365.Sales.Constants;
 
 namespace Kentico.Xperience.Dynamics365.Sales.Models
 {

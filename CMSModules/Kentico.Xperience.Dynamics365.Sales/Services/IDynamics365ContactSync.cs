@@ -1,4 +1,4 @@
-﻿using CMS.ContactManagement;
+using CMS.ContactManagement;
 
 using Kentico.Xperience.Dynamics365.Sales.Models;
 using Kentico.Xperience.Dynamics365.Sales.Models.Mapping;

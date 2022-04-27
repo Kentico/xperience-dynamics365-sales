@@ -1,4 +1,4 @@
-﻿using CMS.Automation;
+using CMS.Automation;
 using CMS.ContactManagement;
 using CMS.Core;
 

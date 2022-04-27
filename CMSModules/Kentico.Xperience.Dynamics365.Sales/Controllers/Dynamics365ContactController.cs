@@ -36,35 +36,31 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controllers
         [HttpPost]
         public HttpResponseMessage Update([FromBody] JObject entity)
         {
-            var response = Request.CreateResponse();
             var dynamics365ContactSync = Service.Resolve<IDynamics365ContactSync>();
+            var eventLogService = Service.Resolve<IEventLogService>();
             if (!dynamics365ContactSync.SynchronizationEnabled())
             {
-                response.StatusCode = HttpStatusCode.Forbidden;
-                response.ReasonPhrase = "Contact synchronization is disabled.";
-                return response;
+                eventLogService.LogError(nameof(Dynamics365ContactController), nameof(Update), "Contact synchronization is disabled.");
+                return Request.CreateResponse(HttpStatusCode.Forbidden);
             }
 
             var user = BasicAuthenticate();
             if (user == null)
             {
-                response.StatusCode = HttpStatusCode.Unauthorized;
-                return response;
+                return Request.CreateResponse(HttpStatusCode.Unauthorized);
             }
 
             if (!user.IsAuthorizedPerObject(PermissionsEnum.Modify, ContactInfo.OBJECT_TYPE, SiteContext.CurrentSiteName))
             {
-                response.StatusCode = HttpStatusCode.Forbidden;
-                response.ReasonPhrase = "The user provided by the Authorization header does not have permission to modify contacts.";
-                return response;
+                eventLogService.LogError(nameof(Dynamics365ContactController), nameof(Update), "The user provided by the Authorization header does not have permission to modify contacts.");
+                return Request.CreateResponse(HttpStatusCode.Forbidden);
             }
 
             var dynamicsId = entity.Value<string>("contactid");
             if (String.IsNullOrEmpty(dynamicsId))
             {
-                response.StatusCode = HttpStatusCode.BadRequest;
-                response.ReasonPhrase = "The provided entity was not a contact.";
-                return response;
+                eventLogService.LogError(nameof(Dynamics365ContactController), nameof(Update), "The provided entity was not a contact.");
+                return Request.CreateResponse(HttpStatusCode.BadRequest);
             }
 
             var linkedContact = ContactInfo.Provider.Get()
@@ -75,9 +71,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controllers
 
             if (linkedContact == null)
             {
-                response.StatusCode = HttpStatusCode.NoContent;
-                response.ReasonPhrase = $"No linked Xperience contact found for Dynamics 365 ID {dynamicsId}.";
-                return response;
+                return Request.CreateResponse(HttpStatusCode.NoContent);
             }
 
             return UpdateContact(linkedContact, entity);
@@ -86,15 +80,14 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controllers
 
         private HttpResponseMessage UpdateContact(ContactInfo contact, JObject entity)
         {
-            var response = Request.CreateResponse();
             var settingsService = Service.Resolve<ISettingsService>();
+            var eventLogService = Service.Resolve<IEventLogService>();
             var dynamics365EntityMapper = Service.Resolve<IDynamics365EntityMapper>();
             var mappingDefinition = settingsService[Dynamics365Constants.SETTING_FIELDMAPPING];
             if (String.IsNullOrEmpty(mappingDefinition))
             {
-                response.StatusCode = HttpStatusCode.InternalServerError;
-                response.ReasonPhrase = "Unable to load contact field mapping. Please check the settings.";
-                return response;
+                eventLogService.LogError(nameof(Dynamics365ContactController), nameof(UpdateContact), "Unable to load contact field mapping. Please check the settings.");
+                return Request.CreateResponse(HttpStatusCode.InternalServerError);
             }
 
             var mapping = JsonConvert.DeserializeObject<MappingModel>(mappingDefinition);
@@ -107,15 +100,12 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controllers
                 }
 
                 contact.Update();
-                response.StatusCode = HttpStatusCode.OK;
+                return Request.CreateResponse(HttpStatusCode.OK);
             }
             else
             {
-                response.StatusCode = HttpStatusCode.NoContent;
-                response.ReasonPhrase = "No mapped fields have changed.";
+                return Request.CreateResponse(HttpStatusCode.NoContent);
             }
-
-            return response;
         }
 
 

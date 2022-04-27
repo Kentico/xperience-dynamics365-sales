@@ -6,12 +6,6 @@
     public static class Dynamics365Constants
     {
         /// <summary>
-        /// The duration of the cache for Dynamics 365 requests.
-        /// </summary>
-        public const int CACHE_MINUTES = 60;
-
-
-        /// <summary>
         /// The code name for the appointment activity type.
         /// </summary>
         public const string ACTIVITY_APPOINTMENT = "appointment";
@@ -21,6 +15,32 @@
         /// The code name for the task activity type.
         /// </summary>
         public const string ACTIVITY_TASK = "task";
+
+
+        /// <summary>
+        /// The application setting containing the Azure application secret.
+        /// </summary>
+        public const string APPSETTING_SECRET = "Dynamics365Secret";
+
+
+        /// <summary>
+        /// The duration of the cache for Dynamics 365 requests.
+        /// </summary>
+        public const int CACHE_MINUTES = 60;
+
+
+        /// <summary>
+        /// The name of the contact custom field which contains the identifier of the
+        /// Dynamics 365 contact that is related to the Xperience contact.
+        /// </summary>
+        public const string CUSTOMFIELDS_LINKEDID = "ContactDynamics365RelatedID";
+
+
+        /// <summary>
+        /// The name of the contact custom field which contains the time that the contact was
+        /// first synchronized to Dynamics 365.
+        /// </summary>
+        public const string CUSTOMFIELDS_SYNCEDON = "ContactDynamics365SynchronizedOn";
 
 
         /// <summary>
@@ -108,12 +128,6 @@
 
 
         /// <summary>
-        /// The key of the setting containing Azure application secret.
-        /// </summary>
-        public const string SETTING_SECRET = "Dynamics365Secret";
-
-
-        /// <summary>
         /// The key of the setting containing the Xperience and Dynamics 365 field mappings.
         /// </summary>
         public const string SETTING_FIELDMAPPING = "Dynamics365ContactMapping";
@@ -141,19 +155,5 @@
         /// The key of the setting indicating whether activity synchronization is enabled.
         /// </summary>
         public const string SETTING_ACTIVITIESENABLED = "Dynamics365ActivitySyncEnabled";
-
-
-        /// <summary>
-        /// The name of the contact custom field which contains the identifier of the
-        /// Dynamics 365 contact that is related to the Xperience contact.
-        /// </summary>
-        public const string CUSTOMFIELDS_LINKEDID = "ContactDynamics365RelatedID";
-
-
-        /// <summary>
-        /// The name of the contact custom field which contains the time that the contact was
-        /// first synchronized to Dynamics 365.
-        /// </summary>
-        public const string CUSTOMFIELDS_SYNCEDON = "ContactDynamics365SynchronizedOn";
     }
 }

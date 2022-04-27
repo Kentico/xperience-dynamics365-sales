@@ -14,11 +14,11 @@ using Newtonsoft.Json.Linq;
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading.Tasks;
 
 [assembly: RegisterImplementation(typeof(IDynamics365Client), typeof(DefaultDynamics365Client), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Dynamics365.Sales.Services
@@ -65,7 +65,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_SECRET], String.Empty);
+                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_SECRET], String.Empty);
             }
         }
 
@@ -275,7 +275,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 CacheKeys = new string[]
                 {
                     $"cms.settingskey|{Dynamics365Constants.SETTING_CLIENTID.ToLower()}",
-                    $"cms.settingskey|{Dynamics365Constants.SETTING_SECRET.ToLower()}",
                     $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}"
                 }
             };

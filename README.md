@@ -22,7 +22,11 @@ This integration enables the synchronization of Xperience contacts and activitie
 1. After registration, select the application registration, note the following in the Azure Portal, and set the corresponding Xperience setting:
    - Application (client) ID
    - Directory (tenant) ID
-1. Click the __Certificates & secrets__ tab, navigate to the __Client secrets__ tab, and create a new secret for the integration. Add this secret to the __Secret__ setting in Xperience.
+1. Click the __Certificates & secrets__ tab, navigate to the __Client secrets__ tab, and create a new secret for the integration. Add this secret to the `appSettings` section in the web.config:
+
+```xml
+<add key="Dynamics365Secret" value="<your secret>" />
+```
 
 ### Enable outgoing contact synchronization
 
@@ -286,3 +290,50 @@ The finished message looks something like this:
 9. Finally, add a __Terminate__ control to the "If no" path to end the flow if the form name doesn't match the "Contact Us" form.
 
 Once you save and enable the flow, you've successfully automated the synchronizing of Xperience form submissions and their data to Dynamics 365, and Teams messages containing the form data and a link to the contact!
+
+## Contributing
+
+If you'd like to contribute to this project, please see [CONTRIBUTING.md](/CONTRIBUTING.md) for more details on how to start. When you've made your code changes and are ready to submit a pull request, you will need to [export](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/exporting-objects) the Dynamics 365 custom module and code files from the Xperience __Sites__ application:
+
+1. Open the __Modules__ application and edit the __Dynamics 365__ module.
+2. On the __General tab__, increment the __Module version__ using [SemVer](https://semver.org/) standards. E.g., increment the patch version for backwards compatible bug fixes, or the minor version for new backwards compatible functionality.
+3. Clear all settings related to the integration. This can be done in __Settings → Integration → Dynamics 365__, or in the database using a query like below. Use caution when querying the database directly and ensure that you have a backup and you modify the query as needed!
+
+```sql
+UPDATE CMS_SettingsKey SET KeyValue = NULL WHERE KeyName LIKE 'dynamics365%'
+```
+
+4. Open the __Sites__ application and click the __Export__ button.
+5. Name the export file using the format `Kentico.Xperience.Dynamics365.Sales.X.Y.Z.zip`, where _"X.Y.Z"_ is the version set in step #2.
+6. Select the _"(no site, only global objects)"_ and _"Do not preselect any objects"_ options and click  __Next__.
+7. Uncheck __All objects → Export tasks__.
+8. In __Global objects → On-line marketing → Automation actions__, check the following options (and any you've added):
+
+  - Create Dynamics 365 appointment
+  - Create Dynamics 365 task
+  - Import to Dynamics 365
+
+9. In __Global objects → Development → Form controls__, check the following options, check the following options (and any you've added):
+
+  - Dynamics 365 option set selector
+  - Dynamics 365 user selector
+
+10. In __Global objects → Development → Modules__, check the _"Dynamics 365"_ option.
+11. In __Global objects → Configuration → Scheduled tasks__, check the following options, check the following options (and any you've added):
+
+  - Dynamics 365 activity synchronization
+  - Dynamics 365 contact synchronization
+
+12. In __Global objects → Configuration → Settings keys__, check the following options, check the following options (and any you've added). They should be located on the final page of the list:
+
+  - Client ID (Dynamics365ClientID)
+  - Default owner (Dynamics365DefaultOwner)
+  - Dynamics URL (Dynamics365URL)
+  - Enabled (Dynamics365ContactSyncEnabled)
+  - Enabled (Dynamics365ActivitySyncEnabled)
+  - Field mapping (Dynamics365ContactMapping)
+  - Minimum score (Dynamics365MinScore)
+  - Tenant ID (Dynamics365TenantID)
+
+  13. Include any other objects from other categories that you've added. You can see [our documentation](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/exporting-objects) for more information about exporting objects.
+  14. When you're finished selecting export objects, click __Next__ and the export package will be created in the appropriate location and included in the repository.

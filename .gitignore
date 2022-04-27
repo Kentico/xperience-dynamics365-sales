@@ -27,12 +27,12 @@ Old_App_WebReferences/
 Properties/
 
 # Xperience root directory files
-*.asax
-*.aspx
-*.config
-*.cs
-*.csproj
-*.svc
+/*.asax
+/*.aspx
+/*.config
+/*.cs
+/*.csproj
+/*.svc
 
 # User-specific files
 *.rsuser

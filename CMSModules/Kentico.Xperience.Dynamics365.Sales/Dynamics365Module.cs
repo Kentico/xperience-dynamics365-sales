@@ -16,7 +16,6 @@ namespace Kentico.Xperience.Dynamics365.Sales
     {
         public Dynamics365Module() : base(nameof(Dynamics365Module))
         {
-
         }
 
 
@@ -25,7 +24,7 @@ namespace Kentico.Xperience.Dynamics365.Sales
             base.OnInit();
 
             GlobalConfiguration.Configuration.Routes.MapHttpRoute(
-                "dynamics365",
+                "xperience-dynamics365",
                 "dynamics365/updatecontact",
                 defaults: new { controller = "Dynamics365Contact", action = "Update" }
             );

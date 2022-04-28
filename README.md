@@ -16,13 +16,22 @@ This integration enables the synchronization of Xperience contacts and activitie
 
 ### Enable the integration
 
-1. In the Xperience administration, open the __Settings__ application and navigate to __Integration → Dynamics 365__.
-1. Add your Dynamics 365 Sales tenant to the __Dynamics URL__ setting. For example, if you access the application at https://mycompany.crm4.dynamics.com/main.aspx, enter _"https<area>://mycompany.crm4.dynamics.com."_ If you don't have  an instance, you can set up a new one using [Microsoft's documentation](https://docs.microsoft.com/en-us/dynamics365/sales/set-up-dynamics-365-sales).
-1. To authenticate requests to Dynamics 365, [register an application](https://docs.microsoft.com/en-us/previous-versions/dynamicscrm-2016/developers-guide/mt622431(v=crm.8)#register-an-application-with-microsoft-azure) in Microsoft Azure Active Directory's __App registrations__ tab.
-1. After registration, select the application registration, note the following in the Azure Portal, and set the corresponding Xperience setting:
-   - Application (client) ID
-   - Directory (tenant) ID
-1. Click the __Certificates & secrets__ tab, navigate to the __Client secrets__ tab, and create a new secret for the integration. Add this secret to the `appSettings` section in the web.config:
+1. Open the _web.config_ of your Xperience CMS project and navigate to the `<appSettings>` section.
+2. Add your Dynamics 365 Sales tenant to the __Dynamics365URL__ application setting. This is the URL where you access Dynamics 365. If you don't have  an instance, you can set up a new one using [Microsoft's documentation](https://docs.microsoft.com/en-us/dynamics365/sales/set-up-dynamics-365-sales).
+
+```xml
+<add key="Dynamics365URL" value="https://mycompany.crm4.dynamics.com" />
+```
+
+3. To authenticate requests to Dynamics 365, [register an application](https://docs.microsoft.com/en-us/previous-versions/dynamicscrm-2016/developers-guide/mt622431(v=crm.8)#register-an-application-with-microsoft-azure) in Microsoft Azure Active Directory's __App registrations__ tab.
+4. After registration, select the application registration, note the __Application (client) ID__ and __Directory (tenant) ID__ in the Azure Portal, and set the corresponding application setting:
+
+```xml
+<add key="Dynamics365ClientID" value="<client ID>" />
+<add key="Dynamics365TenantID" value="<tenant ID>" />
+```
+
+5. Click the __Certificates & secrets__ tab, navigate to the __Client secrets__ tab, and create a new secret for the integration. Add this secret to the __Dynamics365Secret__ application setting:
 
 ```xml
 <add key="Dynamics365Secret" value="<your secret>" />
@@ -326,14 +335,11 @@ UPDATE CMS_SettingsKey SET KeyValue = NULL WHERE KeyName LIKE 'dynamics365%'
 
 12. In __Global objects → Configuration → Settings keys__, check the following options, check the following options (and any you've added). They should be located on the final page of the list:
 
-  - Client ID (Dynamics365ClientID)
   - Default owner (Dynamics365DefaultOwner)
-  - Dynamics URL (Dynamics365URL)
   - Enabled (Dynamics365ContactSyncEnabled)
   - Enabled (Dynamics365ActivitySyncEnabled)
   - Field mapping (Dynamics365ContactMapping)
   - Minimum score (Dynamics365MinScore)
-  - Tenant ID (Dynamics365TenantID)
 
   13. Include any other objects from other categories that you've added. You can see [our documentation](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/exporting-objects) for more information about exporting objects.
   14. When you're finished selecting export objects, click __Next__ and the export package will be created in the appropriate location and included in the repository.

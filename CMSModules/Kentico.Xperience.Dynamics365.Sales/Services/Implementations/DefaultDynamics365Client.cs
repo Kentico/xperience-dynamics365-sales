@@ -38,7 +38,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_URL], String.Empty);
+                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_URL], String.Empty);
             }
         }
 
@@ -47,7 +47,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_CLIENTID], String.Empty);
+                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_CLIENTID], String.Empty);
             }
         }
 
@@ -56,7 +56,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(settingsService[Dynamics365Constants.SETTING_TENANTID], String.Empty);
+                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_TENANTID], String.Empty);
             }
         }
 
@@ -106,8 +106,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             return progressiveCache.Load(cacheSettings => {
-                cacheSettings.CacheDependency = GetDefaultCacheDependency();
-
                 try
                 {
                     var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_ATTRIBUTES, entityName);
@@ -153,8 +151,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
             }
 
             return progressiveCache.Load(cacheSettings => {
-                cacheSettings.CacheDependency = GetDefaultCacheDependency();
-
                 try
                 {
                     var response = SendRequest(endpoint, HttpMethod.Get);
@@ -183,8 +179,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public IEnumerable<Dynamics365SystemUser> GetSystemUsers()
         {
             return progressiveCache.Load(cacheSettings => {
-                cacheSettings.CacheDependency = GetDefaultCacheDependency();
-
                 try
                 {
                     var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_USER) + "?$select=systemuserid,internalemailaddress,fullname,accessmode";
@@ -194,7 +188,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     {
                         var jObject = JObject.Parse(responseContent);
                         var userArray = jObject.Value<JArray>("value");
-
                         return JsonConvert.DeserializeObject<IEnumerable<Dynamics365SystemUser>>(userArray.ToString());
                     }
                     else
@@ -222,9 +215,10 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                 throw new ArgumentNullException(nameof(endpoint));
             }
 
-            if (String.IsNullOrEmpty(DynamicsUrl))
+            if (String.IsNullOrEmpty(DynamicsUrl) || String.IsNullOrEmpty(ClientId) || String.IsNullOrEmpty(TenantId) || String.IsNullOrEmpty(ClientSecret))
             {
-                throw new InvalidOperationException("The Dynamics 365 URL is not configured.");
+                throw new InvalidOperationException("The web.config application settings are not properly configured.");
+
             }
 
             if ((method == HttpMethod.Post || method == patchMethod) && data == null)
@@ -265,19 +259,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
                     throw new NotImplementedException();
                 }
             }
-        }
-
-
-        private CMSCacheDependency GetDefaultCacheDependency()
-        {
-            return new CMSCacheDependency()
-            {
-                CacheKeys = new string[]
-                {
-                    $"cms.settingskey|{Dynamics365Constants.SETTING_CLIENTID.ToLower()}",
-                    $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}"
-                }
-            };
         }
     }
 }

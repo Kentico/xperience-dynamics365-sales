@@ -104,15 +104,6 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controls
         private IEnumerable<ListItem> GetTeams()
         {
             return Service.Resolve<IProgressiveCache>().Load(cacheSettings => {
-                cacheSettings.CacheDependency = new CMSCacheDependency()
-                {
-                    CacheKeys = new string[]
-                    {
-                        $"cms.settingskey|{Dynamics365Constants.SETTING_CLIENTID.ToLower()}",
-                        $"cms.settingskey|{Dynamics365Constants.SETTING_TENANTID.ToLower()}",
-                    }
-                };
-
                 try
                 {
                     var endpoint = String.Format(Dynamics365Constants.ENDPOINT_ENTITY_GET_POST, Dynamics365Constants.ENTITY_TEAM) + "?$select=teamid,name";

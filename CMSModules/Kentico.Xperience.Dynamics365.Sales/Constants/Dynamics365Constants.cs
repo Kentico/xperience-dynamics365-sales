@@ -24,9 +24,27 @@
 
 
         /// <summary>
+        /// The application setting containing the Dynamics tenant URL.
+        /// </summary> 
+        public const string APPSETTING_URL = "Dynamics365URL";
+
+
+        /// <summary>
+        /// The application setting containing the Azure application client ID.
+        /// </summary>
+        public const string APPSETTING_CLIENTID = "Dynamics365ClientID";
+
+
+        /// <summary>
+        /// The application setting containing the Azure application tenant ID.
+        /// </summary>
+        public const string APPSETTING_TENANTID = "Dynamics365TenantID";
+
+
+        /// <summary>
         /// The duration of the cache for Dynamics 365 requests.
         /// </summary>
-        public const int CACHE_MINUTES = 60;
+        public const int CACHE_MINUTES = 30;
 
 
         /// <summary>
@@ -107,24 +125,6 @@
         /// The Web API endpoint which finds all Entities that are activities
         /// </summary>
         public const string ENDPOINT_GET_ACTIVITIES = "/EntityDefinitions?$filter=IsActivity eq true&$select=LogicalName";
-
-
-        /// <summary>
-        /// The key of the setting containing the Dynamics tenant URL.
-        /// </summary> 
-        public const string SETTING_URL = "Dynamics365URL";
-
-
-        /// <summary>
-        /// The key of the setting containing the Azure application client ID.
-        /// </summary>
-        public const string SETTING_CLIENTID = "Dynamics365ClientID";
-
-
-        /// <summary>
-        /// The key of the setting containing the Azure application tenant ID.
-        /// </summary>
-        public const string SETTING_TENANTID = "Dynamics365TenantID";
 
 
         /// <summary>

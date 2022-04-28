@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -113,19 +114,30 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controllers
         {
             string username;
             string password;
-            var authorizationHeader = Request.Headers.GetValues("Authorization").FirstOrDefault();
+            IEnumerable<string> headerValues;
+            var eventLogService = Service.Resolve<IEventLogService>();
+            if (!Request.Headers.TryGetValues("Authorization", out headerValues))
+            {
+                eventLogService.LogError(nameof(Dynamics365ContactController), nameof(BasicAuthenticate), "Authorization header not present in request.");
+                return null;
+            }
+            
+            var authorizationHeader = headerValues.FirstOrDefault();
             if (String.IsNullOrEmpty(authorizationHeader))
             {
+                eventLogService.LogError(nameof(Dynamics365ContactController), nameof(BasicAuthenticate), "Invalid Authorization header.");
                 return null;
             }
 
             if (SecurityHelper.TryParseBasicAuthorizationHeader(authorizationHeader, out username, out password))
             {
-                var user = AuthenticationHelper.AuthenticateUser(username, password, SiteContext.CurrentSiteName, false, AuthenticationSourceEnum.ExternalOrAPI);
-                if (user != null)
+                if (password == String.Empty)
                 {
-                    return user;
+                    eventLogService.LogError(nameof(Dynamics365ContactController), nameof(BasicAuthenticate), "Empty password is not allowed for incoming contact synchronization.");
+                    return null;
                 }
+
+                return AuthenticationHelper.AuthenticateUser(username, password, SiteContext.CurrentSiteName, false, AuthenticationSourceEnum.ExternalOrAPI);
             }
 
             return null;

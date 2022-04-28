@@ -25,7 +25,7 @@ namespace Kentico.Xperience.Dynamics365.Sales
 
             GlobalConfiguration.Configuration.Routes.MapHttpRoute(
                 "xperience-dynamics365",
-                "dynamics365/updatecontact",
+                "xperience-dynamics365/updatecontact",
                 defaults: new { controller = "Dynamics365Contact", action = "Update" }
             );
         }

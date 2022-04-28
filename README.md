@@ -74,7 +74,7 @@ For this example, we will create an __Automated Cloud Flow__ to synchronize the 
 ![Trigger definition](/Assets/flowtrigger.png)
 
 6. Add a new step that uses the __HTTP__ action.
-7. Set the action parameters to send a __POST__ request to the _/dynamics365/updatecontact_ endpoint of your Xperience administration website.
+7. Set the action parameters to send a __POST__ request to the _/xperience-dynamics365/updatecontact_ endpoint of your Xperience administration website.
 8. In the __Body__ parameter, use the "Dynamic content" menu to get the "Body" object, which is the contact information from the trigger.
 9. Expand the "Show advanced options" menu and set the __Authentication__ to "Basic" and provide the username and password of an Xperience user with permissions to modify Xperience contacts. We recommend that you don't use an administrator account, but rather a specific user with limited [permissions](https://docs.xperience.io/managing-users/configuring-permissions).
 

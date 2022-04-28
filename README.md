@@ -62,7 +62,7 @@ Finally, you must map the Xperience contact fields to the desired Dynamics 365 f
 
 ### Enable incoming contact synchronization
 
-Xperience contacts which are linked by the outgoing synchronization can optionally be updated whenever their information is changed in Dynamics 365. To use incoming synchronization, a custom .NET Web API endpoint is available in your administrative Xperience website at the URL _yourcms.com/dynamics365/updatecontact_. To change the Xperience contact information, you can use any approach you'd like to send a __POST__ request to this endpoint, where the body contains the Dynamics 365 contact information in JSON format.
+Xperience contacts which are linked by the outgoing synchronization can optionally be updated whenever their information is changed in Dynamics 365. To use incoming synchronization, a custom .NET Web API endpoint is available in your administrative Xperience website at the URL _yourcms.com/xperience-dynamics365/updatecontact_. To change the Xperience contact information, you can use any approach you'd like to send a __POST__ request to this endpoint, where the body contains the Dynamics 365 contact information in JSON format.
 
 > __Note__: Outgoing contact synchronization must be [enabled](#enable-outgoing-contact-synchronization) for incoming synchronization to work.
 

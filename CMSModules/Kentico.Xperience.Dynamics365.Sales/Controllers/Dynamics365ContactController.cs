@@ -131,7 +131,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Controllers
 
             if (SecurityHelper.TryParseBasicAuthorizationHeader(authorizationHeader, out username, out password))
             {
-                if (password == String.Empty)
+                if (String.IsNullOrEmpty(password))
                 {
                     eventLogService.LogError(nameof(Dynamics365ContactController), nameof(BasicAuthenticate), "Empty password is not allowed for incoming contact synchronization.");
                     return null;

@@ -14,7 +14,6 @@ using Newtonsoft.Json.Linq;
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -31,6 +30,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         private readonly ISettingsService settingsService;
         private readonly IEventLogService eventLogService;
         private readonly IProgressiveCache progressiveCache;
+        private readonly IAppSettingsService appSettingsService;
         private readonly HttpMethod patchMethod = new HttpMethod("PATCH");
 
 
@@ -38,7 +38,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_URL], String.Empty);
+                return ValidationHelper.GetString(appSettingsService[Dynamics365Constants.APPSETTING_URL], String.Empty);
             }
         }
 
@@ -47,7 +47,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_CLIENTID], String.Empty);
+                return ValidationHelper.GetString(appSettingsService[Dynamics365Constants.APPSETTING_CLIENTID], String.Empty);
             }
         }
 
@@ -56,7 +56,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_TENANTID], String.Empty);
+                return ValidationHelper.GetString(appSettingsService[Dynamics365Constants.APPSETTING_TENANTID], String.Empty);
             }
         }
 
@@ -65,7 +65,7 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         {
             get
             {
-                return ValidationHelper.GetString(ConfigurationManager.AppSettings[Dynamics365Constants.APPSETTING_SECRET], String.Empty);
+                return ValidationHelper.GetString(appSettingsService[Dynamics365Constants.APPSETTING_SECRET], String.Empty);
             }
         }
 
@@ -76,11 +76,13 @@ namespace Kentico.Xperience.Dynamics365.Sales.Services
         public DefaultDynamics365Client(
             ISettingsService settingsService,
             IEventLogService eventLogService,
-            IProgressiveCache progressiveCache)
+            IProgressiveCache progressiveCache,
+            IAppSettingsService appSettingsService)
         {
             this.settingsService = settingsService;
             this.eventLogService = eventLogService;
             this.progressiveCache = progressiveCache;
+            this.appSettingsService = appSettingsService;
         }
 
 

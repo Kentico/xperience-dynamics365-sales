@@ -126,7 +126,7 @@ namespace MyCompany.Customizations.Dynamics365
 
 This scheduled task loads all contacts that have been synchronized to Dynamics 365 and synchronizes their activities which were logged since the task's __Last run__ time. There is one exception- since activities are synchronized immediately when a new contact is created in Dynamics 365, this task will use the "ContactDynamics365SynchronizedOn" custom field to load only the activities logged after the synchronization time.
 
-In order for an activity to be synchronized, the [activity type](https://docs.xperience.io/on-line-marketing-features/configuring-and-customizing-your-on-line-marketing-features/configuring-activities/adding-custom-activity-types) __Code name__ in Xperience must match the name of the entity in Dynamics 365. For example, Dynamics 365 contains the ["phonecall" entity](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/phonecall?view=dynamics-ce-odata-9) out-of-the-box, which you can see by opening the __Power apps__ application and navigating to __Tables → Data__:
+In order for an activity to be synchronized, the [activity type](https://docs.xperience.io/on-line-marketing-features/configuring-and-customizing-your-on-line-marketing-features/configuring-activities/adding-custom-activity-types) __Code name__ in Xperience must match the name of the entity in Dynamics 365. For example, Dynamics 365 contains the ["phonecall" entity](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/phonecall?view=dynamics-ce-odata-9) out-of-the-box, which you can see by opening the __Power apps__ application and navigating to __Data → Tables__:
 
 ![Dynamics 365 entities](/Assets/entities.png)
 

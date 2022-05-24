@@ -57,7 +57,7 @@ This integration uses two custom contact fields to store information about conta
       - __Precision__: 7
       - __Display field in the editing form__: No
 
-Finally, you must map the Xperience contact fields to the desired Dynamics 365 fields. Click the _"Edit"_ button next to the __Field mapping__ setting to open a new dialog window. This window displays the available Xperience contact field (including any custom fields added by your developers), and a drop-down list containing the Dynamics 365 fields. For each Xperience field, select the Dynamics 365 that it will be mapped to. If you leave a drop-down on _"(not mapped)"_, that Xperience field will not be synchronized to Dynamics 365.
+Finally, you must map the Xperience contact fields to the desired Dynamics 365 fields. Back in the __Settings__ application, click the _"Edit"_ button next to the __Field mapping__ setting to open a new dialog window. This window displays the available Xperience contact field (including any custom fields added by your developers), and a drop-down list containing the Dynamics 365 fields. For each Xperience field, select the Dynamics 365 that it will be mapped to. If you leave a drop-down on _"(not mapped)"_, that Xperience field will not be synchronized to Dynamics 365. Make sure you click the __Save__ button in the __Settings__ application after you are done mapping to commit the changes to the database!
 
 
 ### Enable incoming contact synchronization

@@ -8,7 +8,7 @@ This integration enables the synchronization of Xperience contacts and activitie
 
 ### Import the custom module
 
-1. Download the latest export package from the [/CMSSiteUtils/Export](/CMSSiteUtils/Export) folder.
+1. Download the latest  _"Kentico.Xperience.Dynamics365.Sales"_ export package from the [Releases](https://github.com/Kentico/xperience-dynamics365-sales/releases).
 1. In the Xperience adminstration, open the __Sites__ application.
 1. [Import](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects) the downloaded package with the __Import files__ and __Import code files__ [settings](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects#Importingasiteorobjects-Import-Objectselectionsettings) enabled.
 1. Perform the [necessary steps](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects#Importingasiteorobjects-Importingpackageswithfiles) to include the following imported folder in your project:

@@ -147,7 +147,7 @@ namespace MyCompany.Customizations.Dynamics365.Sales
     {
 ```
 
-> __Note:__ When registering custom implementations of the integration's interfaces, make sure to include the original code found in [/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/).
+> __Note__ When registering custom implementations of the integration's interfaces, make sure to include the original code found in [/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/Implementations/).
 
 The `MapActivityType` method is called while synchronizing activities to determine the name of the Dynamics 365 entity to create, using the passed `activityType` parameter. For example, if you want to create "phonecall" activities in Dynamics 365, but the code name of the activity in Xperience is "phone," your implementation would look something like this:
 

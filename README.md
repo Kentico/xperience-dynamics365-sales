@@ -2,36 +2,36 @@
 
 # Xperience Dynamics 365 Sales integration
 
-This integration enables the synchronization of Xperience contacts and activities to a Dynamics 365 tenant, and synchronizing updates of those contacts in Dynamics 365 back to your Xperience website. It also contains custom Marketing automation actions to log Dynamics 365 tasks and appointments.
+This integration enables the synchronization of Xperience contacts and activities to a [Dynamics 365](https://dynamics.microsoft.com/en-us/what-is-dynamics365/) tenant, and the synchronization of updates to those contacts made by Dynamics 365 back to your Xperience website. The integration also provides custom [marketing automation](https://docs.xperience.io/x/UgiRBg) actions to log Dynamics 365 tasks and appointments.
 
 ## Set up the environment
 
 ### Import the custom module
 
-1. Download the latest  _"Kentico.Xperience.Dynamics365.Sales"_ export package from the [Releases](https://github.com/Kentico/xperience-dynamics365-sales/releases).
+1. Download the latest  _"Kentico.Xperience.Dynamics365.Sales"_ export package from [Releases](https://github.com/Kentico/xperience-dynamics365-sales/releases).
 1. In the Xperience adminstration, open the __Sites__ application.
-1. [Import](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects) the downloaded package with the __Import files__ and __Import code files__ [settings](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects#Importingasiteorobjects-Import-Objectselectionsettings) enabled.
-1. Perform the [necessary steps](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects#Importingasiteorobjects-Importingpackageswithfiles) to include the following imported folder in your project:
+1. [Import](https://docs.xperience.io/x/VAeRBg) the downloaded package with the __Import files__ and __Import code files__ [settings](https://docs.xperience.io/x/VAeRBg#Importingasiteorobjects-Import-Objectselectionsettings) enabled.
+1. Perform the [necessary steps](https://docs.xperience.io/x/VAeRBg#Importingasiteorobjects-Importingpackageswithfiles) to include the following imported folder into your project:
    - `/CMSModules/Kentico.Xperience.Dynamics365.Sales`
 
 ### Enable the integration
 
-1. Open the _web.config_ of your Xperience CMS project and navigate to the `<appSettings>` section.
-2. Add your Dynamics 365 Sales tenant to the __Dynamics365URL__ application setting. This is the URL where you access Dynamics 365. If you don't have  an instance, you can set up a new one using [Microsoft's documentation](https://docs.microsoft.com/en-us/dynamics365/sales/set-up-dynamics-365-sales).
+1. Open the _web.config_ file of your Xperience administration project and navigate to the `<appSettings>` section.
+2. Add your Dynamics 365 Sales tenant using the __Dynamics365URL__ application setting. This is the URL where you access Dynamics 365. If you don't have  an instance, you can set up a new one using [Microsoft's documentation](https://docs.microsoft.com/en-us/dynamics365/sales/set-up-dynamics-365-sales).
 
 ```xml
 <add key="Dynamics365URL" value="https://mycompany.crm4.dynamics.com" />
 ```
 
 3. To authenticate requests to Dynamics 365, [register an application](https://docs.microsoft.com/en-us/previous-versions/dynamicscrm-2016/developers-guide/mt622431(v=crm.8)#register-an-application-with-microsoft-azure) in Microsoft Azure Active Directory's __App registrations__ tab.
-4. After registration, select the application registration, note the __Application (client) ID__ and __Directory (tenant) ID__ in the Azure Portal, and set the corresponding application setting:
+4. After registration, note the __Application (client) ID__ and __Directory (tenant) ID__ in the Azure Portal, and set the corresponding application settings in Xperience:
 
 ```xml
 <add key="Dynamics365ClientID" value="<client ID>" />
 <add key="Dynamics365TenantID" value="<tenant ID>" />
 ```
 
-5. Click the __Certificates & secrets__ tab, navigate to the __Client secrets__ tab, and create a new secret for the integration. Add this secret to the __Dynamics365Secret__ application setting:
+5. Open the __Certificates & secrets__ tab, navigate to the __Client secrets__ tab, and create a new secret for the integration. Add this secret to Xperience via the __Dynamics365Secret__ application setting:
 
 ```xml
 <add key="Dynamics365Secret" value="<your secret>" />
@@ -39,16 +39,19 @@ This integration enables the synchronization of Xperience contacts and activitie
 
 ### Enable outgoing contact synchronization
 
-Outgoing contact synchronization is performed by the scheduled task "Dynamics 365 contact synchronization" which is set to run every hour by default. However, you must first enable the synchronization by going to the __Settings__ application, navigating to the __Integration → Dynamics 365__ section, and checking the __Enabled__ box under the "Contact synchronization" category.
+To enable outgoing contact synchronization you must enable it in the __Settings__ application, add specific custom fields to the __Contact__ class to facilitate the synchronization, and map your contact fields from Xperience to desired Dynamics 365 fields.
 
-The scheduled task will only synchronize contacts that have reached a minimum total score. Ensure that you have the [contact scoring](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/contact-management/scoring-contacts) functionality configured properly, then set the minimum score in the __Minimum score__ setting. The score must be greater than zero.
+Begin by enabling the synchronization:
+1. Open to the __Settings__ application.
+1. Navigate to the __Integration → Dynamics 365__ section.
+1. Enable the __Enabled__ checkbox under the _Contact synchronization_ category.
+ 
+Outgoing contact synchronization is managed by the _Dynamics 365 contact synchronization_ [scheduled task](https://docs.xperience.io/x/Fg_RBg) by default set to run every hour. The scheduled task only synchronizes contacts that have reached a minimum total score. Ensure that you have the [contact scoring](https://docs.xperience.io/x/gwiRBg) functionality configured correctly, then set the minimum score in the __Minimum score__ setting. The score must be greater than zero.
 
 This integration uses two custom contact fields to store information about contact synchronization, which must be created manually:
-
 1. In the Xperience administration, open the __Modules__ application.
-1. Edit the __Contact management__ module → __Classes__ tab __→ Contact__ class __→ Fields__ tab.
+1. Open the __Contact management__ module → __Classes__ tab __→ Contact__ class __→ Fields__ tab.
 1. Add two __New fields__ with the following configuration:
-
    - __Field name__: ContactDynamics365RelatedID
       - __Data type__: Unique identifier (GUID)
       - __Display field in the editing form__: No
@@ -57,12 +60,17 @@ This integration uses two custom contact fields to store information about conta
       - __Precision__: 7
       - __Display field in the editing form__: No
 
-Finally, you must map the Xperience contact fields to the desired Dynamics 365 fields. Back in the __Settings__ application, click the _"Edit"_ button next to the __Field mapping__ setting to open a new dialog window. This window displays the available Xperience contact field (including any custom fields added by your developers), and a drop-down list containing the Dynamics 365 fields. For each Xperience field, select the Dynamics 365 that it will be mapped to. If you leave a drop-down on _"(not mapped)"_, that Xperience field will not be synchronized to Dynamics 365. Make sure you click the __Save__ button in the __Settings__ application after you are done mapping to commit the changes to the database!
+Finally, map the Xperience contact fields to the desired Dynamics 365 fields: 
+1. In the __Settings__ application, click _"Edit"_ next to the __Field mapping__ setting to open a new dialog window. 
+   - This window displays all available Xperience contact fields (including any custom fields added by your developers), and a drop-down list containing the Dynamics 365 fields. 
+1. For each Xperience field, select the Dynamics 365 field to map to.
+   - Fields left on _"(not mapped)"_ will not be synchronized to Dynamics 365. 
+1. __Save__ the mapping in the __Settings__ application after you are done.
 
 
 ### Enable incoming contact synchronization
 
-Xperience contacts which are linked by the outgoing synchronization can optionally be updated whenever their information is changed in Dynamics 365. To use incoming synchronization, a custom .NET Web API endpoint is available in your administrative Xperience website at the URL _yourcms.com/xperience-dynamics365/updatecontact_. To change the Xperience contact information, you can use any approach you'd like to send a __POST__ request to this endpoint, where the body contains the Dynamics 365 contact information in JSON format.
+Xperience contacts which are linked by the outgoing synchronization can optionally be updated whenever their information is changed in Dynamics 365. To facilitate incoming synchronization, a custom .NET Web API endpoint is available in the Xperience administration at _yourxperienceadmin.com/xperience-dynamics365/updatecontact_. To change the Xperience contact information, you can use any approach you'd like to send a __POST__ request to this endpoint, where the body contains the Dynamics 365 contact information in JSON format.
 
 > __Note__: Outgoing contact synchronization must be [enabled](#enable-outgoing-contact-synchronization) for incoming synchronization to work.
 
@@ -72,45 +80,55 @@ Typically, you will want to create this request using Dynamics 365's __Power Aut
 - __Instant Cloud Flow__: The contact data is not automatically synchronized, but can be triggered manually by your Dynamics 365 users.
 - __Scheduled Cloud Flow__: Synchronizes Dynamics 365 contacts to Xperience in batches based on a timer.
 
-For this example, we will create an __Automated Cloud Flow__ to synchronize the contacts to Xperience instantly after they're changed in Dynamics 365.
+#### Example
+
+For this example, we will create an __Automated Cloud Flow__ to synchronize the contacts to Xperience immediately after an update occurrs in Dynamics 365.
 
 1. Open the [Power Automate](https://powerautomate.microsoft.com/) application in Dynamics 365.
-2. Click the __Create__ tab.
-3. Click __Start from blank → Automated cloud flow__.
-4. In the dialog box, create a flow name and select Microsoft Dataverse's "When a row is added, modified or deleted" trigger.
+2. Select the __Create__ tab.
+3. Select __Start from blank → Automated cloud flow__.
+4. In the dialog box, enter a flow name and select Microsoft Dataverse's _When a row is added, modified or deleted_ trigger.
 5. Configure the trigger to run when a contact is modified:
 
 ![Trigger definition](/Assets/flowtrigger.png)
 
 6. Add a new step that uses the __HTTP__ action.
 7. Set the action parameters to send a __POST__ request to the _/xperience-dynamics365/updatecontact_ endpoint of your Xperience administration website.
-8. In the __Body__ parameter, use the "Dynamic content" menu to get the "Body" object, which is the contact information from the trigger.
-9. Expand the "Show advanced options" menu and set the __Authentication__ to "Basic" and provide the username and password of an Xperience user with permissions to modify Xperience contacts. We recommend that you don't use an administrator account, but rather a specific user with limited [permissions](https://docs.xperience.io/managing-users/configuring-permissions).
+8. In the __Body__ parameter, use the _Dynamic content_ menu to get the _Body_ object, which is the contact information from the trigger.
+9. Expand the _Show advanced options_ menu, set the __Authentication__ to _Basic_, and provide the username and password of an Xperience user with permissions to modify Xperience contacts. 
+   - We recommend that you don't use an administrator account, but rather a specific user with limited [permissions](https://docs.xperience.io/x/kgmRBg).
 
 ![HTTP request definition](/Assets/httprequest.png)
 
 Once this flow is saved and enabled, Dynamics 365 contact information will automatically be sent to your Xperience website when they are changed. If the Dynamics 365 contact's ID has been linked to an Xperience contact (via [outgoing synchronization](#enable-outgoing-contact-synchronization)), the Xperience contact will be updated by comparing the mapped fields and updating only those whose Xperience value are different from the Dynamics 365 value.
 
-If you'd like to change how the incoming synchronization works, you can register your own implementation of the [`IDynamics365EntityMapper.MapChangedColumns`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IDynamics365EntityMapper.cs#L49) method. This method runs when the Dynamics 365 contact information is sent to your Xperience website, and you are provided the Dynamics 365 contact, the Xperience contact that is linked, and the field mappings. The returned `Dictionary` should contain records where the records `Key` is the name of an Xperience contact field that should be updated, and the `Value` is the desired value of that field.
+If you'd like to change how the incoming synchronization works, you can register your own implementation of the [`IDynamics365EntityMapper.MapChangedColumns`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IDynamics365EntityMapper.cs#L49) method. This method runs when the Dynamics 365 contact information is sent to your Xperience website, and you are provided the Dynamics 365 contact, the Xperience contact that is linked, and the field mappings. The returned `Dictionary` contains records where the records `Key` is the name of an Xperience contact field to update, and the `Value` is the updated value of that field.
 
 ### Enable activity synchronization
 
-Activity synchronization is performed by the scheduled task "Dynamics 365 activity synchronization" which is set to run every hour by default. However, you must first enable the synchronization by going to the __Settings__ application, navigating to the __Integration → Dynamics 365__ section, and checking the __Enabled__ box under the "Activity synchronization" category. Activity synchronization is not required for contact synchronization, but if you want to synchronize activities, you _must_ enable contact synchronization.
+Activity synchronization is not required for contact synchronization, but if you want to synchronize activities, you _must_ enable [contact synchronization](#enable-outgoing-contact-synchronization).
 
-After enabling the synchronization, you can optionally choose a Dynamics 365 user or team in the __Default owner__ drop-down. All synchronized activities will be assigned to this user or team when they are created. If you leave this setting on _"(not set)"_ the activities will be unassigned.
+To enable activity synchronization:
+1. Open to the __Settings__ application.
+1. Navigate to the __Integration → Dynamics 365__ section.
+1. Enable the __Enabled__ checkbox under the _Activity synchronization_ category.
+ 
+Activity synchronization is managed by the _Dynamics 365 activity synchronization_ [scheduled task](https://docs.xperience.io/x/Fg_RBg) by default set to run every hour. 
+
+After enabling the synchronization, you can optionally choose a Dynamics 365 user or team in the __Default owner__ drop-down. All synchronized activities will be assigned to this user or team when created. If you leave this setting on _"(not set)"_ synchronized activities will be left unassigned in Dynamics.
 
 ## How the synchronization works
 
-After [setting up the environment](#set-up-the-environment), you will find two new scheduled tasks in the __Scheduled tasks__ application of your administration. These tasks are enabled and set to run every hour by default, though you can disable them or adjust the interval as needed:
+After [setting up the environment](#set-up-the-environment), you will find two new scheduled tasks in the __Scheduled tasks__ application of your Xperience administration. These tasks are enabled and set to run every hour by default, though you can disable them or adjust the interval as needed:
 
-   - Dynamics 365 contact synchronization
-   - Dynamics 365 activity synchronization
+   - [Dynamics 365 contact synchronization](#outgoing-contact-synchronization)
+   - [Dynamics 365 activity synchronization](#activity-synchronization)
 
 ### Outgoing contact synchronization
 
- When the contact synchronization task runs, it will collect all Xperience contacts that have a score equal to or greater than the __Minimum score__ setting. The full contact data is sent to Dynamics 365 according to how you've [mapped the fields](#enable-contact-synchronization), and the ID of the Dynamics 365 contact that was created is stored in a custom Xperience field named "ContactDynamics365RelatedID." If activity synchronization is enabled, the contact's activities are also synchronized during creation of the contact. You can also synchronize a contact to Dynamics 365 regardless of their score by adding the __Import to Dynamics 365__ step to a [__Marketing automation__ process](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation/working-with-marketing-automation-processes).
+When the contact synchronization task runs, it collects all Xperience contacts that have a score equal to or greater than the __Minimum score__ setting. The full contact data is sent to Dynamics 365 according to how you've [mapped the fields](#enable-contact-synchronization), and the ID of the Dynamics 365 contact that was created is stored in a custom Xperience contact field named "ContactDynamics365RelatedID." If activity synchronization is enabled, the contact's activities are also synchronized during creation of the contact. You can also synchronize a contact to Dynamics 365 regardless of their score by adding the __Import to Dynamics 365__ step to a [marketing automation process](https://docs.xperience.io/x/awiRBg).
 
-Contacts that were _already_ synchronized in the past (e.g. the "ContactDynamics365RelatedID" fields contains a Dynamics 365 contact ID) are synchronized again during the task execution. The Xperience contact data is compared to the Dynamics 365 contact data to check whether the information was updated since the last synchronization. If no mapped fields have changed, synchronization is skipped for that contact. If some fields have changed, a partial update is made to the Dynamics 365 contact to avoid unwanted triggering of workflows (e.g. if you have a process that runs whenever a contact's email address is updated).
+Contacts that were _already_ synchronized in the past (e.g., the "ContactDynamics365RelatedID" fields contains a Dynamics 365 contact ID) are synchronized again during the task execution. The Xperience contact data is compared to the Dynamics 365 contact data to check whether the information was updated since the last synchronization. If no mapped fields have changed, synchronization is skipped for that contact. If some fields have changed, a partial update is made to the Dynamics 365 contact to avoid unwanted triggering of workflows (e.g., if you have a process that runs whenever a contact's email address is updated).
 
 The Xperience contact fields that are available for mapping are automatically retrieved at run time, so any custom fields added by your developers will appear automatically. However, if you would like to adjust the retrieved fields for any reason, you can register a custom implementation of [`IContactFieldProvider`](/CMSModules/Kentico.Xperience.Dynamics365.Sales/Services/IContactFieldProvider.cs):
 
@@ -124,9 +142,9 @@ namespace MyCompany.Customizations.Dynamics365
 
 ### Activity synchronization
 
-This scheduled task loads all contacts that have been synchronized to Dynamics 365 and synchronizes their activities which were logged since the task's __Last run__ time. There is one exception- since activities are synchronized immediately when a new contact is created in Dynamics 365, this task will use the "ContactDynamics365SynchronizedOn" custom field to load only the activities logged after the synchronization time.
+This scheduled task loads all contacts that have been synchronized to Dynamics 365 and synchronizes their activities which were logged since the task's __Last run__ time, with one exception. Since activities are synchronized immediately when a new contact is created in Dynamics 365, this task uses the "ContactDynamics365SynchronizedOn" custom field to load only the activities logged after the synchronization time.
 
-In order for an activity to be synchronized, the [activity type](https://docs.xperience.io/on-line-marketing-features/configuring-and-customizing-your-on-line-marketing-features/configuring-activities/adding-custom-activity-types) __Code name__ in Xperience must match the name of the entity in Dynamics 365. For example, Dynamics 365 contains the ["phonecall" entity](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/phonecall?view=dynamics-ce-odata-9) out-of-the-box, which you can see by opening the __Power apps__ application and navigating to __Data → Tables__:
+In order for an activity to be synchronized, the [activity type](https://docs.xperience.io/x/_wiRBg) __Code name__ in Xperience must match the name of the entity in Dynamics 365. For example, Dynamics 365 contains the ["phonecall" entity](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/phonecall?view=dynamics-ce-odata-9) out-of-the-box, which you can see by opening the __Power apps__ application and navigating to __Data → Tables__:
 
 ![Dynamics 365 entities](/Assets/entities.png)
 
@@ -163,7 +181,7 @@ public string MapActivityType(string activityType)
 }
 ```
 
-Once the Xperience activity is configured to synchronize the Dynamics 365, the activity data must be mapped to the Dynamics 365 entity by your developers as there is no way for the integration to know where the information should be stored. Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObject`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you will be provided with the name of the Entity being created (e.g. "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data will be an `ActivityInfo` object when mapping standard Xperience activities.
+Once the Xperience activity is configured, the activity data must be mapped to the Dynamics 365 entity by your developers as there is no way for the integration to know where the information should be stored. Implement the `MapActivity` method which is called during activity synchronization to map Xperience activity data to an anonymous [`JObject`](https://www.newtonsoft.com/json/help/html/t_newtonsoft_json_linq_jobject.htm), which is sent to Dynamics 365. In this method, you are provided with the name of the Entity being created (e.g., "mycustomactivity"), the ID of the Dynamics 365 contact that performed the activity, and the `relatedData` of the activity. The related data is an `CMS.Activities.ActivityInfo` object when mapping standard Xperience activities.
 
 ## Example: synchronizing the "Page visit" activity
 
@@ -291,7 +309,8 @@ After adding the __Condition__ control, you will see two paths you can add more 
 ![Teams flow get contact](/Assets/teamsflowgetcontact.png)
 
 8. After that, add a Microsoft Teams __Post message in chat or channel__ action. Here, you can construct the body of the message using dynamic data from the activity (trigger) and the contact (from the previous step). In the sample code posted above, we set the form data to the Dynamics 365 activity's __description__ field, so we can include that in the body.  
-If you want to provide a direct link to the Dynamics 365 contact, you can use the approach described in [this article](https://d365demystified.com/2020/06/13/generate-dynamics-365-record-link-in-a-flow-using-cds-connector-power-automate/). In this example, we used the function `uriHost(body('Get_a_row_by_ID')?['@odata.id'])` to get the URL of the Dynamics 365 tenant. To replace the line breaks in the activity description for better Teams formatting, you can use `uriComponentToString(replace(uriComponent(triggerBody()['description']), '%0A', '<br/>'))`  
+> If you want to provide a direct link to the Dynamics 365 contact, you can use the approach described in [this article](https://d365demystified.com/2020/06/13/generate-dynamics-365-record-link-in-a-flow-using-cds-connector-power-automate/). In this example, we used the function `uriHost(body('Get_a_row_by_ID')?['@odata.id'])` to get the URL of the Dynamics 365 tenant. To replace the line breaks in the activity description for better Teams formatting, you can use `uriComponentToString(replace(uriComponent(triggerBody()['description']), '%0A', '<br/>'))`  
+
 The finished message looks something like this:
 
 ![Teams flow message body](/Assets/teamsflowmessagebody.png)

@@ -1,6 +1,6 @@
 [![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico) ![Kentico.Xperience.Libraries 13.0.0](https://img.shields.io/badge/Kentico.Xperience.Libraries-v13.0.0-orange)
 
-# Xperience Dynamics 365 Sales integration
+# Microsoft Dynamics 365 Sales integration with Kentico Xperience 13
 
 This integration enables the synchronization of Xperience contacts and activities to a [Dynamics 365](https://dynamics.microsoft.com/en-us/what-is-dynamics365/) tenant, and the synchronization of updates to those contacts made by Dynamics 365 back to your Xperience website. The integration also provides custom [marketing automation](https://docs.xperience.io/x/UgiRBg) actions to log Dynamics 365 tasks and appointments.
 
